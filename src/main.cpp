@@ -7,18 +7,24 @@
 #include <ESP8266WiFiMulti.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <Wire.h>
+
+#include <VCC.h>
+#include <BH1750.h>
+
+ADC_MODE(ADC_VCC);
 
 ESP8266WiFiMulti wifiMulti;
 PubSubClient pubSubClient;
 WiFiClient wifiClient;
 
+VCC vcc = VCC();
+BH1750 bh1750 = BH1750();
+
 char id[13];
 String publishTopic;
 unsigned long timerMeasureIntervallStart = 0;
 unsigned long timerLastReconnectStart = 0;
-
-
-ADC_MODE(ADC_VCC);
 
 
 void printSettings() {
@@ -27,7 +33,7 @@ void printSettings() {
   #ifdef DEEPSLEEP
   Serial << "DEEPSLEEP: " << DEEPSLEEP << " s" << endl;
   #endif
-  Serial << "TIMER: " << TIMER << " s" << endl;
+  Serial << "TIMER: " << TIMER << "s" << endl;
   Serial << "id: " << id << endl;
   Serial << "mqtt Server: " << mqtt_server << endl;
   Serial << "mqtt Username: " << mqtt_username << endl;
@@ -52,7 +58,26 @@ void setupPubSub() {
 }
 
 void publishValues() {
-  Serial << millis() << endl;
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject& json = jsonBuffer.createObject();
+  JsonArray& vccJson = json.createNestedArray("vcc");
+  JsonArray& luxJson = json.createNestedArray("lux");
+  String jsonString;
+
+  if (vcc.isAvailable()) {
+    vccJson.add(vcc.getValue());
+  }
+  if (bh1750.isAvailable()) {
+    luxJson.add(bh1750.getValue());
+  }
+
+  if (pubSubClient.connected()) {
+    jsonString = "";
+    json.printTo(jsonString);
+    if (pubSubClient.publish(publishTopic.c_str(), jsonString.c_str())) {
+      Serial << " < " << publishTopic << ": " << jsonString << endl;
+    }
+  }
 }
 
 bool connect() {
@@ -78,6 +103,8 @@ bool connect() {
 
 void setup() {
   Serial.begin(115200);
+  Wire.begin();
+
   Serial.setDebugOutput(false);
 
   wifiMulti.addAP(ssid_1, password_1);
