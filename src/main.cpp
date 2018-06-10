@@ -11,6 +11,7 @@
 
 #include <VCC.h>
 #include <BH1750.h>
+#include <SHT3X.h>
 
 ADC_MODE(ADC_VCC);
 
@@ -20,6 +21,7 @@ WiFiClient wifiClient;
 
 VCC vcc = VCC();
 BH1750 bh1750 = BH1750();
+SHT3X sht3x = SHT3X(0x45);
 
 char id[13];
 String publishTopic;
@@ -28,17 +30,29 @@ unsigned long timerLastReconnectStart = 0;
 
 
 void printSettings() {
-  Serial << endl << endl << "RESETINFO: " << ESP.getResetInfo() << endl;
+  Serial << endl << endl << "Reset Info: " << ESP.getResetInfo() << endl;
   Serial << endl << "VERSION: " << VERSION << endl;
   #ifdef DEEPSLEEP
   Serial << "DEEPSLEEP: " << DEEPSLEEP << " s" << endl;
   #endif
   Serial << "TIMER: " << TIMER << "s" << endl;
+  Serial << "IP: " << WiFi.localIP() << endl;
   Serial << "id: " << id << endl;
   Serial << "mqtt Server: " << mqtt_server << endl;
   Serial << "mqtt Username: " << mqtt_username << endl;
   Serial << "topic: " << publishTopic << endl;
   Serial << endl;
+}
+
+void setupWiFi() {
+  Serial << endl << "connecting" << endl;
+  wifiMulti.addAP(ssid_1, password_1);
+  wifiMulti.addAP(ssid_2, password_2);
+  while (wifiMulti.run() != WL_CONNECTED) {
+    Serial << ".";
+    delay(100);
+  }
+  Serial << " connected!" << endl;
 }
 
 void setupID() {
@@ -62,6 +76,8 @@ void publishValues() {
   JsonObject& json = jsonBuffer.createObject();
   JsonArray& vccJson = json.createNestedArray("vcc");
   JsonArray& luxJson = json.createNestedArray("lux");
+  JsonArray& temperatureJson = json.createNestedArray("temperature");
+  JsonArray& humidityJson = json.createNestedArray("humidity");
   String jsonString;
 
   if (vcc.isAvailable()) {
@@ -69,6 +85,11 @@ void publishValues() {
   }
   if (bh1750.isAvailable()) {
     luxJson.add(bh1750.getValue());
+  }
+  if (sht3x.isAvailable()) {
+    sht3x.getValue();
+    temperatureJson.add(sht3x.temperature);
+    humidityJson.add(sht3x.humidity);
   }
 
   if (pubSubClient.connected()) {
@@ -107,13 +128,12 @@ void setup() {
 
   Serial.setDebugOutput(false);
 
-  wifiMulti.addAP(ssid_1, password_1);
-  wifiMulti.addAP(ssid_2, password_2);
-
+  setupWiFi();
   setupID();
   setupTopic();
   printSettings();
   setupPubSub();
+  bh1750.begin();
   if (connect()) {
     publishValues();
   }
