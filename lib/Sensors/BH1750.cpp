@@ -4,6 +4,9 @@ BH1750::BH1750(byte addr) {
   BH1750_I2CADDR = addr;
 }
 
+void BH1750::begin() {
+}
+
 bool BH1750::isAvailable() {
   bool isAvailable = false;
 

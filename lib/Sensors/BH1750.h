@@ -18,7 +18,7 @@ private:
 
 public:
   BH1750(byte addr = 0x23);
+  void begin();
   bool isAvailable();
   int getValue();
-
 };
