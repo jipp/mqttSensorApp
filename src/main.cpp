@@ -133,7 +133,9 @@ void setup() {
   setupTopic();
   printSettings();
   setupPubSub();
+  vcc.begin();
   bh1750.begin();
+  sht3x.begin();
   if (connect()) {
     publishValues();
   }
