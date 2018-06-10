@@ -1,7 +1,9 @@
 #include "VCC.h"
 
 VCC::VCC() {
+}
 
+void VCC::begin() {
 }
 
 bool VCC::isAvailable() {
