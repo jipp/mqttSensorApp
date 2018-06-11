@@ -12,6 +12,8 @@
 #include <VCC.h>
 #include <BH1750.h>
 #include <SHT3X.h>
+#include <BMP180.h>
+
 
 ADC_MODE(ADC_VCC);
 
@@ -22,6 +24,7 @@ WiFiClient wifiClient;
 VCC vcc = VCC();
 BH1750 bh1750 = BH1750();
 SHT3X sht3x = SHT3X(0x45);
+BMP180 bmp180 = BMP180();
 
 char id[13];
 String publishTopic;
@@ -45,7 +48,7 @@ void printSettings() {
 }
 
 void setupWiFi() {
-  Serial << endl << "connecting" << endl;
+  Serial << endl << "connecting:" << endl;
   wifiMulti.addAP(ssid_1, password_1);
   wifiMulti.addAP(ssid_2, password_2);
   while (wifiMulti.run() != WL_CONNECTED) {
@@ -75,21 +78,28 @@ void publishValues() {
   DynamicJsonBuffer jsonBuffer;
   JsonObject& json = jsonBuffer.createObject();
   JsonArray& vccJson = json.createNestedArray("vcc");
-  JsonArray& luxJson = json.createNestedArray("lux");
+  JsonArray& illuminanceJson = json.createNestedArray("illuminance");
   JsonArray& temperatureJson = json.createNestedArray("temperature");
   JsonArray& humidityJson = json.createNestedArray("humidity");
+  JsonArray& pressureJson = json.createNestedArray("pressure");
   String jsonString;
 
   if (vcc.isAvailable()) {
     vccJson.add(vcc.getValue());
   }
   if (bh1750.isAvailable()) {
-    luxJson.add(bh1750.getValue());
+    illuminanceJson.add(bh1750.getValue());
   }
   if (sht3x.isAvailable()) {
     sht3x.getValue();
     temperatureJson.add(sht3x.temperature);
     humidityJson.add(sht3x.humidity);
+  }
+  if (bmp180.isAvailable()) {
+    bmp180.getValue();
+    temperatureJson.add(bmp180.temperature);
+    humidityJson.add(bmp180.humidity);
+    pressureJson.add(bmp180.pressure);
   }
 
   if (pubSubClient.connected()) {
