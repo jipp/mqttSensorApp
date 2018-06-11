@@ -25,6 +25,6 @@ public:
   void begin();
   bool isAvailable();
   void getValue();
-  float temperature=0.0;
-  float humidity=0.0;
+  float temperature = 0.0;
+  float humidity = 0.0;
 };
