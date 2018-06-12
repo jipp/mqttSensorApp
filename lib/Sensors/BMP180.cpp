@@ -1,4 +1,4 @@
-#include "BMP180.h"
+#include <BMP180.h>
 
 BMP180::BMP180(byte addr) {
   BMP180_I2CADDR = addr;

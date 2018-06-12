@@ -1,15 +1,11 @@
-#include "VCC.h"
+#include <VCC.h>
 
-VCC::VCC() {
+bool VCC::begin() {
+  this->isAvailable = true;
+
+  return this->isAvailable;
 }
 
-void VCC::begin() {
-}
-
-bool VCC::isAvailable() {
-  return true;
-}
-
-int VCC::getValue() {
+int VCC::getVCC() {
   return ESP.getVcc();
 }

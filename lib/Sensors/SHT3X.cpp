@@ -1,4 +1,4 @@
-#include "SHT3X.h"
+#include <SHT3X.h>
 
 SHT3X::SHT3X(byte addr) {
   SHT3X_I2CADDR = addr;

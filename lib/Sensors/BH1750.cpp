@@ -1,4 +1,4 @@
-#include "BH1750.h"
+#include <BH1750.h>
 
 BH1750::BH1750(byte addr) {
   BH1750_I2CADDR = addr;

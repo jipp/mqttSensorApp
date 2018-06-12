@@ -3,21 +3,12 @@
 
 class Sensor {
 public:
-  Sensor(byte sensorAddr);
-  bool getIsAvailable();
-  void getValues();
-  float getVCC();
-  float getTemperature();
-  float getHumidity();
-  float getPressure();
-  float getIlluminance();
+  bool isAvailable = false;
+
+  Sensor(byte sensorAddress = 0x00, byte sensorID = 0x00);
+  virtual bool begin() = 0;
 
 private:
-  bool isAvailable = false;
-  byte sensorAddr;
-  float vcc = 0.0;
-  float temperature = 0.0;
-  float humidity = 0.0;
-  float pressure = 0.0;
-  float illuminance = 0.0;
+  byte sensorAddress;
+  byte sensorID;
 };

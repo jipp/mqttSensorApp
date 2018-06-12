@@ -17,6 +17,7 @@
 
 ADC_MODE(ADC_VCC);
 
+
 ESP8266WiFiMulti wifiMulti;
 PubSubClient pubSubClient;
 WiFiClient wifiClient;
@@ -84,8 +85,8 @@ void publishValues() {
   JsonArray& pressureJson = json.createNestedArray("pressure");
   String jsonString;
 
-  if (vcc.isAvailable()) {
-    vccJson.add(vcc.getValue());
+  if (vcc.isAvailable) {
+    vccJson.add(vcc.getVCC());
   }
   if (bh1750.isAvailable()) {
     illuminanceJson.add(bh1750.getValue());

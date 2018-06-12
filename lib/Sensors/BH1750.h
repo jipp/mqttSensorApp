@@ -1,9 +1,14 @@
 #include <Arduino.h>
-
 #include <Streaming.h>
 #include <Wire.h>
 
 class BH1750 {
+public:
+  BH1750(byte sensorAddress = 0x23);
+  void begin();
+  bool isAvailable();
+  int getValue();
+
 private:
   int BH1750_I2CADDR;
   enum Mode {
@@ -16,9 +21,4 @@ private:
     ONE_TIME_LOW_RES_MODE = 0x23        // Measurement at 1lx resolution. Measurement time is approx 120ms.
   };
 
-public:
-  BH1750(byte addr = 0x23);
-  void begin();
-  bool isAvailable();
-  int getValue();
 };
