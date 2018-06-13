@@ -16,13 +16,13 @@ void SHT3X::getValues() {
   writeDataInt(H_REPEATABILITY_CLOCK_STRETCHING);
   delay(15);
 
-  Wire.requestFrom(this->sensorAddress, 6);
-  if (Wire.available() == 6) {
-    for (int i=0;i<6;i++) {
+  Wire.requestFrom(this->sensorAddress, 4);
+  if (Wire.available() == 4) {
+    for (int i=0;i<4;i++) {
   		data[i]=Wire.read();
   	};
   }
 
- 	this->temperature = ((((data[0] * 256.0) + data[1]) * 175) / 65535.0) - 45;
-	this->humidity = ((((data[3] * 256.0) + data[4]) * 100) / 65535.0);
+ 	this->temperature = 175 * ((data[0] * 256.0) + data[1]) / 65535.0 - 45.0;
+	this->humidity = 100 * ((data[3] * 256.0) + data[4]) / 65535.0;
 }
