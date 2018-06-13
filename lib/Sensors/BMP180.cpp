@@ -1,23 +1,47 @@
 #include <BMP180.h>
 
-BMP180::BMP180(byte addr) {
-  BMP180_I2CADDR = addr;
+BMP180::BMP180(int sensorAddress, int sensorID) {
+  this->sensorAddress = sensorAddress;
+  this->sensorID = sensorID;
 }
 
-void BMP180::begin() {
+bool BMP180::begin() {
+  if (checkAddress()) {
+    writeDataByte(CHIP_ID_REGISTER);
+    if (readDataByte() == this->sensorID) {
+      this->isAvailable = true;
+      this->readCalibrationData();
+      return true;
+    }
+  }
+
+  return false;
 }
 
-bool BMP180::isAvailable() {
-  bool isAvailable = false;
+void BMP180::getValues() {
+  this->readUncompensatedTemperature();
+  this->readUncompensatedPressure();
 
-  Wire.beginTransmission(BMP180_I2CADDR);
-  isAvailable = Wire.endTransmission();
-
-  return isAvailable == 0 ? true : false;
+  this->temperature = this->calculateTrueTemperature();
+  this->pressure = this->calculateTruePressure();
 }
 
-void BMP180::getValue() {
-  temperature = 0.0;
-  humidity = 0.0;
-  pressure = 0.0;
+void BMP180::readCalibrationData() {
+
+}
+
+void BMP180::readUncompensatedTemperature() {
+
+}
+
+void BMP180::readUncompensatedPressure() {
+
+}
+
+float BMP180::calculateTrueTemperature() {
+  return 0.0;
+}
+
+float BMP180::calculateTruePressure() {
+  return 0.0;
 }

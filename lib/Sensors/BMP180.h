@@ -1,23 +1,36 @@
 #include <Arduino.h>
+#include <Sensor.h>
 #include <Streaming.h>
 #include <Wire.h>
 
-class BMP180 {
-private:
-  int BMP180_I2CADDR;
-  enum Mode {
-    BMP085_ULTRALOWPOWER = 0,
-    BMP085_STANDARD = 1,
-    BMP085_HIGHRES = 2,
-    BMP085_ULTRAHIGHRES = 3
-  };
-
+class BMP180 : public Sensor {
 public:
-  BMP180(byte addr = 0x77);
-  void begin();
-  bool isAvailable();
-  void getValue();
-  float temperature = 0.0;
-  float humidity = 0.0;
-  float pressure = 0.0;
+  float temperature;
+  float pressure;
+
+  BMP180(int sensorAddress = 0x77, int sensorID = 0x55);
+  bool begin();
+  void getValues();
+  void readCalibrationData();
+  void readUncompensatedTemperature();
+  void readUncompensatedPressure();
+  float calculateTrueTemperature();
+  float calculateTruePressure();
+
+private:
+  #define CHIP_ID_REGISTER  0xD0
+  enum Mode {
+    ULTRA_LOW_POWER = 0,        // 4.5ms
+    STANDARD = 1,               // 7.5ms
+    HIGH_RESOLUTION = 2,        // 13.5ms
+    ULTRA_HIGH_RESOLUTION = 3   // 25.5ms
+  };
+  #define CONTROL_REGISTER_ADDRESS 0xF4
+  enum Measurement {
+    TEMPERATURE = 0x2E,         // 4.5ms
+    PRESSURE_OSS0 = 0x34,       // 4.5ms
+    PRESSURE_OSS1 = 0x74,       // 7.5ms
+    PRESSURE_OSS2 = 0xB4,       // 13.5ms
+    PRESSURE_OSS3 = 0xF4,       // 25.5ms
+  };
 };

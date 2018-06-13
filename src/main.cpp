@@ -104,7 +104,6 @@ void publishValues() {
   if (bmp180.isAvailable) {
     bmp180.getValues();
     temperatureJson.add(bmp180.temperature);
-    humidityJson.add(bmp180.humidity);
     pressureJson.add(bmp180.pressure);
   }
 
