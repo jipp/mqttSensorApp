@@ -22,7 +22,6 @@ void Sensor::writeDataInt(uint16_t data) {
   Wire.endTransmission();
 }
 
-
 byte Sensor::readDataByte() {
   byte data = 0;
 

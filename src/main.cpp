@@ -101,8 +101,8 @@ void publishValues() {
     temperatureJson.add(sht3x.temperature);
     humidityJson.add(sht3x.humidity);
   }
-  if (bmp180.isAvailable()) {
-    bmp180.getValue();
+  if (bmp180.isAvailable) {
+    bmp180.getValues();
     temperatureJson.add(bmp180.temperature);
     humidityJson.add(bmp180.humidity);
     pressureJson.add(bmp180.pressure);
@@ -152,6 +152,7 @@ void setup() {
   vcc.begin();
   bh1750.begin();
   sht3x.begin();
+  bmp180.begin();
   if (connect()) {
     publishValues();
   }

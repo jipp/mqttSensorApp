@@ -7,11 +7,10 @@ class SHT3X : public Sensor {
 public:
   float temperature;
   float humidity;
-  
+
   SHT3X(int sensorAddress = 0x44);
   bool begin();
   void getValues();
-
 
 private:
   enum Mode {
