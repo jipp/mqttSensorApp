@@ -96,8 +96,8 @@ void publishValues() {
   if (bh1750.isAvailable) {
     illuminanceJson.add(bh1750.getIlluminance());
   }
-  if (sht3x.isAvailable()) {
-    sht3x.getValue();
+  if (sht3x.isAvailable) {
+    sht3x.getValues();
     temperatureJson.add(sht3x.temperature);
     humidityJson.add(sht3x.humidity);
   }

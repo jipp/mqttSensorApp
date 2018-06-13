@@ -15,11 +15,10 @@ private:
     POWER_ON = 0x01,
     RESET = 0x07,
     CONTINUOUSLY_H_RESOLUTION_MODE = 0x10,    // Measurement at 1lx resolution. Measurement time is approx 120ms.
-    CONTINUOUSLY_H_RESOLUTION_MODE2 = 0x11,  // Measurement at 0.5lx resolution. Measurement time is approx 120ms.
-    CONTINUOUSLY_L_RESOLUTION_MODE = 0x13,     // Measurement at 4lx resolution. Measurement time is approx 16ms.
-    ONE_TIME_H_RESOLUTION_MODE = 0x20,      // Measurement at 1lx resolution. Measurement time is approx 120ms.
-    ONE_TIME_H_RESOLUTION_MODE2 = 0x21,    // Measurement at 0.5lx resolution. Measurement time is approx 120ms.
-    ONE_TIME_L_RESOLUTION_MODE = 0x23        // Measurement at 4lx resolution. Measurement time is approx 16ms.
+    CONTINUOUSLY_H_RESOLUTION_MODE2 = 0x11,   // Measurement at 0.5lx resolution. Measurement time is approx 120ms.
+    CONTINUOUSLY_L_RESOLUTION_MODE = 0x13,    // Measurement at 4lx resolution. Measurement time is approx 16ms.
+    ONE_TIME_H_RESOLUTION_MODE = 0x20,        // Measurement at 1lx resolution. Measurement time is approx 120ms.
+    ONE_TIME_H_RESOLUTION_MODE2 = 0x21,       // Measurement at 0.5lx resolution. Measurement time is approx 120ms.
+    ONE_TIME_L_RESOLUTION_MODE = 0x23         // Measurement at 4lx resolution. Measurement time is approx 16ms.
   };
-
 };

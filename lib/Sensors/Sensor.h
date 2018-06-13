@@ -13,12 +13,10 @@ public:
 
   virtual bool begin() = 0;
   bool checkAddress();
-  void writeData(byte data);
+  void writeDataByte(byte data);
+  void writeDataInt(uint16_t data);
   byte readDataByte();
   uint16_t readDataInt();
-
-private:
-
 };
 
 #endif

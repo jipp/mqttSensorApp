@@ -9,11 +9,19 @@ bool Sensor::checkAddress() {
   return transmissionStatus == 0 ? true : false;
 }
 
-void Sensor::writeData(byte data) {
+void Sensor::writeDataByte(byte data) {
   Wire.beginTransmission(this->sensorAddress);
   Wire.write(data);
   Wire.endTransmission();
 }
+
+void Sensor::writeDataInt(uint16_t data) {
+  Wire.beginTransmission(this->sensorAddress);
+  Wire.write(data >> 8);
+  Wire.write(data & 0xFF);
+  Wire.endTransmission();
+}
+
 
 byte Sensor::readDataByte() {
   byte data = 0;
