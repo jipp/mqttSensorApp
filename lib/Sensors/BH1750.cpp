@@ -1,35 +1,19 @@
 #include <BH1750.h>
 
-BH1750::BH1750(byte addr) {
-  BH1750_I2CADDR = addr;
+BH1750::BH1750(int sensorAddress) {
+  this->sensorAddress = sensorAddress;
+  this->sensorID = 0x00;
 }
 
-void BH1750::begin() {
+bool BH1750::begin() {
+  this->isAvailable = checkAddress();
+
+  return this->isAvailable;
 }
 
-bool BH1750::isAvailable() {
-  bool isAvailable = false;
-
-  Wire.beginTransmission(BH1750_I2CADDR);
-  isAvailable = Wire.endTransmission();
-
-  return isAvailable == 0 ? true : false;
-}
-
-int BH1750::getValue() {
-  uint16_t value = 65535;
-
-  Wire.beginTransmission(BH1750_I2CADDR);
-  Wire.write(CONTINUOUS_HIGH_RES_MODE);
-  Wire.endTransmission();
-
+uint16_t BH1750::getIlluminance() {
+  writeData(CONTINUOUSLY_H_RESOLUTION_MODE);
   delayMicroseconds(120);
-  Wire.requestFrom(BH1750_I2CADDR, 2);
-  if (Wire.available() == 2) {
-    value = Wire.read();
-    value <<= 8;
-    value |= Wire.read();
-  }
 
-  return value;
+  return readDataInt();
 }

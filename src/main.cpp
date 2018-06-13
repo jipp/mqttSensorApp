@@ -43,20 +43,25 @@ void printSettings() {
   Serial << "IP: " << WiFi.localIP() << endl;
   Serial << "id: " << id << endl;
   Serial << "mqtt Server: " << mqtt_server << endl;
+  Serial << "mqtt Port: " << mqtt_port << endl;
   Serial << "mqtt Username: " << mqtt_username << endl;
   Serial << "topic: " << publishTopic << endl;
   Serial << endl;
+}
+
+void connectWiFi() {
+  while (wifiMulti.run() != WL_CONNECTED) {
+    Serial << ".";
+    delay(100);
+  }
+  Serial << " connected!" << endl;
 }
 
 void setupWiFi() {
   Serial << endl << "connecting:" << endl;
   wifiMulti.addAP(ssid_1, password_1);
   wifiMulti.addAP(ssid_2, password_2);
-  while (wifiMulti.run() != WL_CONNECTED) {
-    Serial << ".";
-    delay(100);
-  }
-  Serial << " connected!" << endl;
+  connectWiFi();
 }
 
 void setupID() {
@@ -88,8 +93,8 @@ void publishValues() {
   if (vcc.isAvailable) {
     vccJson.add(vcc.getVCC());
   }
-  if (bh1750.isAvailable()) {
-    illuminanceJson.add(bh1750.getValue());
+  if (bh1750.isAvailable) {
+    illuminanceJson.add(bh1750.getIlluminance());
   }
   if (sht3x.isAvailable()) {
     sht3x.getValue();
@@ -153,19 +158,22 @@ void setup() {
 }
 
 void loop() {
-  wifiMulti.run();
-  if (!pubSubClient.connected()) {
-    if (millis() - timerLastReconnectStart > timerLastReconnect * 1000) {
-      timerLastReconnectStart = millis();
-      if (connect()) {
-        timerLastReconnectStart = 0;
+  if (wifiMulti.run() == WL_CONNECTED) {
+    if (!pubSubClient.connected()) {
+      if (millis() - timerLastReconnectStart > timerLastReconnect * 1000) {
+        timerLastReconnectStart = millis();
+        if (connect()) {
+          timerLastReconnectStart = 0;
+        }
+      }
+    } else {
+      pubSubClient.loop();
+      if (millis() - timerMeasureIntervallStart > timerMeasureIntervall * 1000) {
+        timerMeasureIntervallStart = millis();
+        publishValues();
       }
     }
   } else {
-    pubSubClient.loop();
-    if (millis() - timerMeasureIntervallStart > timerMeasureIntervall * 1000) {
-      timerMeasureIntervallStart = millis();
-      publishValues();
-    }
+    connectWiFi();
   }
 }
