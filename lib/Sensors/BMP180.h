@@ -31,23 +31,33 @@ private:
     PRESSURE_OSS2 = 0xB4,       // 13.5ms
     PRESSURE_OSS3 = 0xF4,       // 25.5ms
   };
-  enum CalibrationCoefficients{
-    AC1 = 0xAA,
-    AC2 = 0xAC,
-    AC3 = 0xAE,
-    AC4 = 0xB0,
-    AC5 = 0xB2,
-    AC6 = 0xB4,
-    _B1 = 0xB6,
-    B2 = 0xB8,
-    MB = 0xBA,
-    MC = 0xBC,
-    MD = 0xBE
+  enum CalibrationCoefficientsRegister {
+    REGISTER_AC1 = 0xAA,
+    REGISTER_AC2 = 0xAC,
+    REGISTER_AC3 = 0xAE,
+    REGISTER_AC4 = 0xB0,
+    REGISTER_AC5 = 0xB2,
+    REGISTER_AC6 = 0xB4,
+    REGISTER_B1 = 0xB6,
+    REGISTER_B2 = 0xB8,
+    REGISTER_MB = 0xBA,
+    REGISTER_MC = 0xBC,
+    REGISTER_MD = 0xBE
   };
-
-  int16_t ac1, ac2, ac3, b1, b2, mb, mc, md;
-  uint16_t ac4, ac5, ac6;
-  int16_t UT;
-  uint32_t UP;
+  struct CalibrationCoefficients {
+    int16_t ac1;
+    int16_t ac2;
+    int16_t ac3;
+    uint16_t ac4;
+    uint16_t ac5;
+    uint16_t ac6;
+    int16_t b1;
+    int16_t b2;
+    int16_t mb;
+    int16_t mc;
+    int16_t md;
+  } calibrationCoefficients;
+  int32_t UT;
+  int32_t UP;
   int16_t B5;
 };
