@@ -45,3 +45,33 @@ uint16_t Sensor::readDataInt() {
 
   return data;
 }
+
+byte Sensor::readRegisterByte(byte registerAddress) {
+  byte data = 0;
+
+  writeDataByte(registerAddress);
+  Wire.beginTransmission(this->sensorAddress);
+  Wire.requestFrom(this->sensorAddress, 1);
+  if (Wire.available() == 1) {
+    data = Wire.read();
+  }
+  Wire.endTransmission();
+
+  return data;
+}
+
+uint16_t Sensor::readRegisterInt(byte registerAddress) {
+  uint16_t data = 0;
+
+  writeDataByte(registerAddress);
+  Wire.beginTransmission(this->sensorAddress);
+  Wire.requestFrom(this->sensorAddress, 2);
+  if (Wire.available() == 2) {
+    data = Wire.read();
+    data <<= 8;
+    data |= Wire.read();
+  }
+  Wire.endTransmission();
+
+  return data;
+}
