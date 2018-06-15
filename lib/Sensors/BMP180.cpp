@@ -27,28 +27,17 @@ void BMP180::getValues() {
 }
 
 void BMP180::readCalibrationData() {
-  writeDataByte(REGISTER_AC1);
-  this->calibrationCoefficients.ac1 = readDataInt();
-  writeDataByte(REGISTER_AC2);
-  this->calibrationCoefficients.ac2 = readDataInt();
-  writeDataByte(REGISTER_AC3);
-  this->calibrationCoefficients.ac3 = readDataInt();
-  writeDataByte(REGISTER_AC4);
-  this->calibrationCoefficients.ac4 = readDataInt();
-  writeDataByte(REGISTER_AC5);
-  this->calibrationCoefficients.ac5 = readDataInt();
-  writeDataByte(REGISTER_AC6);
-  this->calibrationCoefficients.ac6 = readDataInt();
-  writeDataByte(REGISTER_B1);
-  this->calibrationCoefficients.b1 = readDataInt();
-  writeDataByte(REGISTER_B2);
-  this->calibrationCoefficients.b2 = readDataInt();
-  writeDataByte(REGISTER_MB);
-  this->calibrationCoefficients.mb = readDataInt();
-  writeDataByte(REGISTER_MC);
-  this->calibrationCoefficients.mc = readDataInt();
-  writeDataByte(REGISTER_MD);
-  this->calibrationCoefficients.md = readDataInt();
+  this->calibrationCoefficients.ac1 = readRegisterInt(REGISTER_AC1);
+  this->calibrationCoefficients.ac2 = readRegisterInt(REGISTER_AC2);
+  this->calibrationCoefficients.ac3 = readRegisterInt(REGISTER_AC3);
+  this->calibrationCoefficients.ac4 = readRegisterInt(REGISTER_AC4);
+  this->calibrationCoefficients.ac5 = readRegisterInt(REGISTER_AC5);
+  this->calibrationCoefficients.ac6 = readRegisterInt(REGISTER_AC6);
+  this->calibrationCoefficients.b1 = readRegisterInt(REGISTER_B1);
+  this->calibrationCoefficients.b2 = readRegisterInt(REGISTER_B2);
+  this->calibrationCoefficients.mb = readRegisterInt(REGISTER_MB);
+  this->calibrationCoefficients.mc = readRegisterInt(REGISTER_MC);
+  this->calibrationCoefficients.md = readRegisterInt(REGISTER_MD);
 }
 
 void BMP180::readUncompensatedTemperature() {
@@ -60,10 +49,9 @@ void BMP180::readUncompensatedTemperature() {
 
   delayMicroseconds(4500);
 
-  writeDataByte(0xF6);
-  MSB = readDataByte();
-  writeDataByte(0xF7);
-  LSB = readDataByte();
+  MSB = readRegisterByte(0xF6);
+  LSB = readRegisterByte(0xF7);
+
   this->UT = (MSB << 8) + LSB;
   Serial << "UT " << this->UT << endl;
 }
@@ -75,14 +63,14 @@ void BMP180::readUncompensatedPressure() {
 
   writeDataByte(0xF4);
   writeDataByte(0x34 | (STANDARD << 6));
-  writeDataByte(0xF6);
-  MSB = readDataByte();
+
+  delayMicroseconds(4500);
+
+  MSB = readRegisterByte(0xF6);
   Serial << MSB << endl;
-  writeDataByte(0xF7);
-  LSB = readDataByte();
+  LSB = readRegisterByte(0xF7);
   Serial << LSB << endl;
-  writeDataByte(0xF8);
-  XLSB = readDataByte();
+  XLSB = readRegisterByte(0xF8);
   Serial << XLSB << endl;
 
   this->UP = ((MSB << 16) | (LSB << 8) | XLSB) >> (8 - STANDARD);
@@ -96,7 +84,7 @@ float BMP180::calculateTrueTemperature() {
   X2 = (this->calibrationCoefficients.mc << 11) / (X1 + this->calibrationCoefficients.md);
   this->B5 = X1 + X2;
 
-  return ( this->B5 + 8 ) >> 4;
+  return ((this->B5 + 8) >> 4) / 10;
 }
 
 float BMP180::calculateTruePressure() {
