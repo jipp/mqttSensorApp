@@ -59,5 +59,5 @@ private:
   } calibrationCoefficients;
   int32_t UT;
   int32_t UP;
-  int16_t B5;
+  int32_t B5;
 };

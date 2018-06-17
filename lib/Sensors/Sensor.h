@@ -17,6 +17,7 @@ public:
   void writeDataInt(uint16_t data);
   byte readDataByte();
   uint16_t readDataInt();
+  void writeRegisterByte(byte data, byte registerAddress);
   byte readRegisterByte(byte registerAddress);
   uint16_t readRegisterInt(byte register);
 };

@@ -46,6 +46,13 @@ uint16_t Sensor::readDataInt() {
   return data;
 }
 
+void Sensor::writeRegisterByte(byte data, byte registerAddress) {
+  Wire.beginTransmission(this->sensorAddress);
+  Wire.write(data);
+  Wire.write(registerAddress);
+  Wire.endTransmission();
+}
+
 byte Sensor::readRegisterByte(byte registerAddress) {
   byte data = 0;
 

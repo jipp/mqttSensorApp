@@ -44,8 +44,7 @@ void BMP180::readUncompensatedTemperature() {
   byte MSB;
   byte LSB;
 
-  writeDataByte(0xF4);
-  writeDataByte(0x2E);
+  writeRegisterByte(0xF4, 0x2E);
 
   delayMicroseconds(4500);
 
@@ -53,7 +52,6 @@ void BMP180::readUncompensatedTemperature() {
   LSB = readRegisterByte(0xF7);
 
   this->UT = (MSB << 8) + LSB;
-  Serial << "UT " << this->UT << endl;
 }
 
 void BMP180::readUncompensatedPressure() {
@@ -61,51 +59,51 @@ void BMP180::readUncompensatedPressure() {
   byte LSB;
   byte XLSB;
 
-  writeDataByte(0xF4);
-  writeDataByte(0x34 | (STANDARD << 6));
+  writeRegisterByte(0xF4, 0x34 | (STANDARD << 6));
 
-  delayMicroseconds(4500);
+  delayMicroseconds(7500);
 
   MSB = readRegisterByte(0xF6);
-  Serial << MSB << endl;
   LSB = readRegisterByte(0xF7);
-  Serial << LSB << endl;
   XLSB = readRegisterByte(0xF8);
-  Serial << XLSB << endl;
 
   this->UP = ((MSB << 16) | (LSB << 8) | XLSB) >> (8 - STANDARD);
-  Serial << this->UP << endl;
 }
 
 float BMP180::calculateTrueTemperature() {
-  uint16_t X1, X2;
+  int32_t X1, X2, T;
 
   X1 = (this->UT - this->calibrationCoefficients.ac6) * this->calibrationCoefficients.ac5 >> 15;
   X2 = (this->calibrationCoefficients.mc << 11) / (X1 + this->calibrationCoefficients.md);
   this->B5 = X1 + X2;
+  T = (this->B5 + 8) >> 4;
 
-  return ((this->B5 + 8) >> 4) / 10;
+  return T / 10.0;
 }
 
 float BMP180::calculateTruePressure() {
-  uint16_t B6, X1, X2, X3, B3, B4, B7;
-  uint32_t p;
+  int32_t B6, X1, X2, X3, B3, p;
+  uint32_t B4, B7;
 
   B6 = this->B5 - 4000;
-  X1 = ( calibrationCoefficients.b2 * ( B6 * B6 >> 12)) >> 11;
-  X3 = calibrationCoefficients.ac2 * B6 >> 11;
-  B3 = calibrationCoefficients.ac4 * (uint32_t) (X3 + 32768) >> 15;
-  B4 = calibrationCoefficients.ac4 * (uint32_t) (X3 + 32768) >> 15;
-  B7 = ((uint32_t) (this->UP - B3)) * (5000 >> STANDARD);
+  X1 = (calibrationCoefficients.b2 * (B6 * B6 >> 12)) >> 11;
+  X2 = calibrationCoefficients.ac2 * B6 >> 11;
+  X3 = X1 + X2;
+  B3 = (((calibrationCoefficients.ac1 * 4 + X3) << STANDARD) + 2) / 4;
+  X1 = calibrationCoefficients.ac3 * B6 >> 13;
+  X2 = (calibrationCoefficients.b1 * (B6 * B6 >> 12)) >> 16;
+  X3 = ((X1 + X2) + 2) >> 2;
+  B4 = calibrationCoefficients.ac4 * (uint32_t)(X3 + 32768) >> 15;
+  B7 = ((uint32_t)this->UP - B3) * (50000 >> STANDARD);
   if (B7 < 0x80000000) {
     p = (B7 * 2) / B4;
   } else {
-    p = (B7 / B4) *2;
+    p = (B7 / B4) * 2;
   }
   X1 = (p >> 8) * (p >> 8);
   X1 = (X1 * 3038) >> 16;
   X2 = (-7357 * p) >> 16;
-p = p + ((X1 + X2+ 3791) >> 4);
+  p = p + ((X1 + X2 + 3791) >> 4);
 
-return p;
+  return p / 100.0;
 }
