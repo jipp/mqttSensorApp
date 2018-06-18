@@ -3,13 +3,13 @@
 #include <Streaming.h>
 #include <Wire.h>
 
-class BMP280 : public Sensor {
+class BME280 : public Sensor {
 public:
   float temperature;
   float pressure;
   float humidity;
 
-  BMP280(int sensorAddress = 0x76, int sensorID = 0x60);
+  BME280(int sensorAddress = 0x76, int sensorID = 0x60);
   bool begin();
   void getValues();
   void readCalibrationData();

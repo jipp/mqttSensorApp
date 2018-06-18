@@ -13,7 +13,7 @@
 #include <BH1750.h>
 #include <SHT3X.h>
 #include <BMP180.h>
-#include <BMP280.h>
+#include <BME280.h>
 
 
 ADC_MODE(ADC_VCC);
@@ -27,7 +27,7 @@ VCC vcc = VCC();
 BH1750 bh1750 = BH1750();
 SHT3X sht3x = SHT3X(0x45);
 BMP180 bmp180 = BMP180();
-BMP280 bmp280 = BMP280();
+BME280 bme280 = BME280();
 
 char id[13];
 String publishTopic;
@@ -108,7 +108,7 @@ void publishValues() {
     temperatureJson.add(bmp180.temperature);
     pressureJson.add(bmp180.pressure);
   }
-  if (bmp280.isAvailable) {
+  if (bme280.isAvailable) {
 //    bmp180.getValues();
 //    temperatureJson.add(bmp180.temperature);
 //    pressureJson.add(bmp180.pressure);
@@ -160,7 +160,7 @@ void setup() {
   bh1750.begin();
   sht3x.begin();
   bmp180.begin();
-  bmp280.begin();
+  bme280.begin();
   if (connect()) {
     publishValues();
   }

@@ -1,11 +1,11 @@
-#include <BMP280.h>
+#include <BME280.h>
 
-BMP280::BMP280(int sensorAddress, int sensorID) {
+BME280::BME280(int sensorAddress, int sensorID) {
   this->sensorAddress = sensorAddress;
   this->sensorID = sensorID;
 }
 
-bool BMP280::begin() {
+bool BME280::begin() {
   if (checkAddress()) {
     writeDataByte(0xD0);
     if (readDataByte() == this->sensorID) {
@@ -18,7 +18,7 @@ bool BMP280::begin() {
   return false;
 }
 
-void BMP280::getValues() {
+void BME280::getValues() {
   this->readUncompensatedTemperature();
   this->readUncompensatedPressure();
 
@@ -26,7 +26,7 @@ void BMP280::getValues() {
   this->pressure = this->calculateTruePressure();
 }
 
-void BMP280::readCalibrationData() {
+void BME280::readCalibrationData() {
   this->calibrationCoefficients.ac1 = readRegisterInt(REGISTER_AC1);
   this->calibrationCoefficients.ac2 = readRegisterInt(REGISTER_AC2);
   this->calibrationCoefficients.ac3 = readRegisterInt(REGISTER_AC3);
@@ -40,7 +40,7 @@ void BMP280::readCalibrationData() {
   this->calibrationCoefficients.md = readRegisterInt(REGISTER_MD);
 }
 
-void BMP280::readUncompensatedTemperature() {
+void BME280::readUncompensatedTemperature() {
   byte MSB;
   byte LSB;
 
@@ -54,7 +54,7 @@ void BMP280::readUncompensatedTemperature() {
   this->UT = (MSB << 8) + LSB;
 }
 
-void BMP280::readUncompensatedPressure() {
+void BME280::readUncompensatedPressure() {
   byte MSB;
   byte LSB;
   byte XLSB;
@@ -70,7 +70,7 @@ void BMP280::readUncompensatedPressure() {
   this->UP = ((MSB << 16) | (LSB << 8) | XLSB) >> (8 - STANDARD);
 }
 
-float BMP280::calculateTrueTemperature() {
+float BME280::calculateTrueTemperature() {
   int32_t X1, X2, T;
 
   X1 = (this->UT - this->calibrationCoefficients.ac6) * this->calibrationCoefficients.ac5 >> 15;
@@ -81,7 +81,7 @@ float BMP280::calculateTrueTemperature() {
   return T / 10.0;
 }
 
-float BMP280::calculateTruePressure() {
+float BME280::calculateTruePressure() {
   int32_t B6, X1, X2, X3, B3, p;
   uint32_t B4, B7;
 
