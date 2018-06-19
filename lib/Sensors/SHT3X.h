@@ -3,6 +3,8 @@
 #include <Streaming.h>
 #include <Wire.h>
 
+#define SHT3X_CONDITION  H_REPEATABILITY_CLOCK_STRETCHING
+
 class SHT3X : public Sensor {
 public:
   float temperature;
@@ -13,7 +15,7 @@ public:
   void getValues();
 
 private:
-  enum Mode {
+  enum Condition {
     H_REPEATABILITY_CLOCK_STRETCHING = 0x2C06,  // 15ms
     M_REPEATABILITY_CLOCK_STRETCHING = 0x2C0D,  // 6ms
     L_REPEATABILITY_CLOCK_STRETCHING = 0x2C10,  // 6ms
@@ -27,4 +29,5 @@ private:
     HEATER_ENABLE = 0x306D,
     HEATRER_DISABLED = 0x3066,
   };
+  void wait(uint32 Condition);
 };
