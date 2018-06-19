@@ -3,6 +3,8 @@
 #include <Streaming.h>
 #include <Wire.h>
 
+#define BMP180_MODE  ULTRA_HIGH_RESOLUTION
+
 class BMP180 : public Sensor {
 public:
   float temperature;
@@ -60,4 +62,5 @@ private:
   int32_t UT;
   int32_t UP;
   int32_t B5;
+  void wait(uint16_t Mode);
 };

@@ -29,5 +29,5 @@ private:
     HEATER_ENABLE = 0x306D,
     HEATRER_DISABLED = 0x3066,
   };
-  void wait(uint32 Condition);
+  void wait(uint32_t Condition);
 };

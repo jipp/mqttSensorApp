@@ -45,7 +45,6 @@ void BMP180::readUncompensatedTemperature() {
   byte LSB;
 
   writeRegisterByte(0xF4, 0x2E);
-
   delayMicroseconds(4500);
 
   MSB = readRegisterByte(0xF6);
@@ -59,15 +58,14 @@ void BMP180::readUncompensatedPressure() {
   byte LSB;
   byte XLSB;
 
-  writeRegisterByte(0xF4, 0x34 | (STANDARD << 6));
-
-  delayMicroseconds(7500);
+  writeRegisterByte(0xF4, PRESSURE_OSS0 | (BMP180_MODE << 6));
+  wait(BMP180_MODE);
 
   MSB = readRegisterByte(0xF6);
   LSB = readRegisterByte(0xF7);
   XLSB = readRegisterByte(0xF8);
 
-  this->UP = ((MSB << 16) | (LSB << 8) | XLSB) >> (8 - STANDARD);
+  this->UP = ((MSB << 16) | (LSB << 8) | XLSB) >> (8 - BMP180_MODE);
 }
 
 float BMP180::calculateTrueTemperature() {
@@ -89,12 +87,12 @@ float BMP180::calculateTruePressure() {
   X1 = (calibrationCoefficients.b2 * (B6 * B6 >> 12)) >> 11;
   X2 = calibrationCoefficients.ac2 * B6 >> 11;
   X3 = X1 + X2;
-  B3 = (((calibrationCoefficients.ac1 * 4 + X3) << STANDARD) + 2) / 4;
+  B3 = (((calibrationCoefficients.ac1 * 4 + X3) << BMP180_MODE) + 2) / 4;
   X1 = calibrationCoefficients.ac3 * B6 >> 13;
   X2 = (calibrationCoefficients.b1 * (B6 * B6 >> 12)) >> 16;
   X3 = ((X1 + X2) + 2) >> 2;
   B4 = calibrationCoefficients.ac4 * (uint32_t)(X3 + 32768) >> 15;
-  B7 = ((uint32_t)this->UP - B3) * (50000 >> STANDARD);
+  B7 = ((uint32_t)this->UP - B3) * (50000 >> BMP180_MODE);
   if (B7 < 0x80000000) {
     p = (B7 * 2) / B4;
   } else {
@@ -106,4 +104,21 @@ float BMP180::calculateTruePressure() {
   p = p + ((X1 + X2 + 3791) >> 4);
 
   return p / 100.0;
+}
+
+void BMP180::wait(uint16_t Mode) {
+  switch(Mode) {
+    case ULTRA_LOW_POWER:
+    delayMicroseconds(450);
+    break;
+    case STANDARD:
+    delayMicroseconds(750);
+    break;
+    case HIGH_RESOLUTION:
+    delayMicroseconds(13500);
+    break;
+    case ULTRA_HIGH_RESOLUTION:
+    delayMicroseconds(25500);
+    break;
+  };
 }
