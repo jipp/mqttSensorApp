@@ -1,16 +1,15 @@
 #include <Arduino.h>
 #include <Sensor.h>
-#include <Streaming.h>
 #include <Wire.h>
 
+#define SHT3X_ADDRESS  0x44
 #define SHT3X_CONDITION  H_REPEATABILITY_CLOCK_STRETCHING
 
 class SHT3X : public Sensor {
 public:
   float temperature;
   float humidity;
-
-  SHT3X(int sensorAddress = 0x44);
+  SHT3X(int sensorAddress = SHT3X_ADDRESS);
   bool begin();
   void getValues();
 

@@ -96,7 +96,8 @@ void publishValues() {
     vccJson.add(vcc.getVCC());
   }
   if (bh1750.isAvailable) {
-    illuminanceJson.add(bh1750.getIlluminance());
+    bh1750.getValues();
+    illuminanceJson.add(bh1750.illuminance);
   }
   if (sht3x.isAvailable) {
     sht3x.getValues();
@@ -112,7 +113,7 @@ void publishValues() {
 //    bmp180.getValues();
 //    temperatureJson.add(bmp180.temperature);
 //    pressureJson.add(bmp180.pressure);
-      Serial << "bmp280 found" << endl;
+      Serial << "bme280 found" << endl;
   }
 
   if (pubSubClient.connected()) {

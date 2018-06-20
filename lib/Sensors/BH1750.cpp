@@ -10,11 +10,11 @@ bool BH1750::begin() {
   return this->isAvailable;
 }
 
-uint16_t BH1750::getIlluminance() {
+void BH1750::getValues() {
   writeDataByte(BH1750_INSTRUCTION);
   wait(BH1750_INSTRUCTION);
 
-  return readDataInt();
+  this->illuminance = readDataInt();
 }
 
 void BH1750::wait(uint16_t Instruction) {

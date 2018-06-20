@@ -1,15 +1,16 @@
 #include <Arduino.h>
 #include <Sensor.h>
-#include <Streaming.h>
 #include <Wire.h>
 
+#define BH1750_ADDRESS  0x23
 #define BH1750_INSTRUCTION  CONTINUOUSLY_H_RESOLUTION_MODE
 
 class BH1750 : public Sensor {
 public:
-  BH1750(int sensorAddress = 0x23);
+  uint16_t illuminance;
+  BH1750(int sensorAddress = BH1750_ADDRESS);
   bool begin();
-  uint16_t getIlluminance();
+  void getValues();
 
 private:
   enum Instruction {
