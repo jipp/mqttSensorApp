@@ -1,11 +1,9 @@
 #include <VCC.h>
 
-bool VCC::begin() {
+VCC::VCC() {
   this->isAvailable = true;
-
-  return this->isAvailable;
 }
 
-int VCC::getVCC() {
-  return ESP.getVcc();
+void VCC::getValues() {
+  this->voltage = ESP.getVcc() / 1000.0;
 }

@@ -3,9 +3,7 @@
 
 class VCC : public Sensor {
 public:
-  bool begin();
-  int getVCC();
-
-private:
-
+  float voltage;
+  VCC();
+  void getValues();
 };

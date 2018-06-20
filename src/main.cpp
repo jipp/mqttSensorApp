@@ -93,7 +93,8 @@ void publishValues() {
   String jsonString;
 
   if (vcc.isAvailable) {
-    vccJson.add(vcc.getVCC());
+    vcc.getValues();
+    vccJson.add(vcc.voltage);
   }
   if (bh1750.isAvailable) {
     bh1750.getValues();
@@ -157,7 +158,6 @@ void setup() {
   setupTopic();
   printSettings();
   setupPubSub();
-  vcc.begin();
   bh1750.begin();
   sht3x.begin();
   bmp180.begin();

@@ -11,7 +11,6 @@ public:
   int sensorAddress = 0x00;
   int sensorID = 0x00;
 
-  virtual bool begin() = 0;
   bool checkAddress();
   void writeDataByte(byte data);
   void writeDataInt(uint16_t data);
