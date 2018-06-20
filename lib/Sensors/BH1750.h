@@ -8,8 +8,7 @@
 class BH1750 : public Sensor {
 public:
   uint16_t illuminance;
-  BH1750(int sensorAddress = BH1750_ADDRESS);
-  bool begin();
+  BH1750(byte sensorAddress = BH1750_ADDRESS);
   void getValues();
 
 private:

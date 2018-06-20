@@ -9,8 +9,7 @@ class SHT3X : public Sensor {
 public:
   float temperature;
   float humidity;
-  SHT3X(int sensorAddress = SHT3X_ADDRESS);
-  bool begin();
+  SHT3X(byte sensorAddress = SHT3X_ADDRESS);
   void getValues();
 
 private:

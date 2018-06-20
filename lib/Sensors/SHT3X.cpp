@@ -1,13 +1,8 @@
 #include <SHT3X.h>
 
-SHT3X::SHT3X(int sensorAddress) {
+SHT3X::SHT3X(byte sensorAddress) {
   this->sensorAddress = sensorAddress;
-}
-
-bool SHT3X::begin() {
-  this->isAvailable = checkAddress();
-
-  return this->isAvailable;
+  this->isAvailable = this->checkSensorAvailability(this->sensorAddress);
 }
 
 void SHT3X::getValues() {

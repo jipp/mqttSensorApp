@@ -158,8 +158,6 @@ void setup() {
   setupTopic();
   printSettings();
   setupPubSub();
-  bh1750.begin();
-  sht3x.begin();
   bmp180.begin();
   bme280.begin();
   if (connect()) {

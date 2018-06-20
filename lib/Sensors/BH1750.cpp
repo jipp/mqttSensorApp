@@ -1,13 +1,8 @@
 #include <BH1750.h>
 
-BH1750::BH1750(int sensorAddress) {
+BH1750::BH1750(byte sensorAddress) {
   this->sensorAddress = sensorAddress;
-}
-
-bool BH1750::begin() {
-  this->isAvailable = checkAddress();
-
-  return this->isAvailable;
+  this->isAvailable = this->checkSensorAvailability(this->sensorAddress);
 }
 
 void BH1750::getValues() {

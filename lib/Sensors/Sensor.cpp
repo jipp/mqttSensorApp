@@ -1,5 +1,14 @@
 #include <Sensor.h>
 
+bool Sensor::checkSensorAvailability(byte sensorAddress) {
+  byte transmissionStatus;
+
+  Wire.beginTransmission(this->sensorAddress);
+  transmissionStatus = Wire.endTransmission();
+
+  return transmissionStatus == 0 ? true : false;
+}
+
 bool Sensor::checkAddress() {
   byte transmissionStatus;
 

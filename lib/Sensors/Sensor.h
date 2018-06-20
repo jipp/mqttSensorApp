@@ -2,7 +2,6 @@
 #define sensor_h
 
 #include <Arduino.h>
-#include <Streaming.h>
 #include <Wire.h>
 
 class Sensor {
@@ -11,6 +10,7 @@ public:
   int sensorAddress = 0x00;
   int sensorID = 0x00;
 
+  bool checkSensorAvailability(byte sensorAddress);
   bool checkAddress();
   void writeDataByte(byte data);
   void writeDataInt(uint16_t data);
