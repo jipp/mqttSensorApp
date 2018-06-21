@@ -6,14 +6,14 @@ BH1750::BH1750(byte sensorAddress) {
 }
 
 void BH1750::getValues() {
-  writeDataByte(BH1750_INSTRUCTION);
-  wait(BH1750_INSTRUCTION);
+  writeDataByte(BH1750_MODE);
+  wait(BH1750_MODE);
 
   this->illuminance = readDataInt();
 }
 
-void BH1750::wait(uint16_t Instruction) {
-  switch(Instruction) {
+void BH1750::wait(uint16_t Mode) {
+  switch(Mode) {
     case CONTINUOUSLY_H_RESOLUTION_MODE:
     delayMicroseconds(120);
     break;

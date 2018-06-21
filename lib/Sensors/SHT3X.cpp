@@ -8,8 +8,8 @@ SHT3X::SHT3X(byte sensorAddress) {
 void SHT3X::getValues() {
   unsigned int data[6];
 
-  writeDataInt(SHT3X_CONDITION);
-  wait(SHT3X_CONDITION);
+  writeDataInt(SHT3X_MODE);
+  wait(SHT3X_MODE);
 
   Wire.requestFrom(this->sensorAddress, 6);
   if (Wire.available() == 6) {
@@ -22,8 +22,8 @@ void SHT3X::getValues() {
 	this->humidity = 100.0 * ((data[3] * 256.0) + data[4]) / 65535.0;
 }
 
-void SHT3X::wait(uint32_t Condition) {
-  switch(Condition) {
+void SHT3X::wait(uint32_t Mode) {
+  switch(Mode) {
     case H_REPEATABILITY_CLOCK_STRETCHING:
     delay(15);
     break;
