@@ -1,17 +1,20 @@
-#include <SHT3X.h>
+ #include <SHT3X.h>
 
 SHT3X::SHT3X(byte sensorAddress) {
   this->sensorAddress = sensorAddress;
+}
+
+void SHT3X::begin() {
   this->isAvailable = this->checkSensorAvailability(this->sensorAddress);
 }
 
 void SHT3X::getValues() {
   unsigned int data[6];
 
-  writeDataInt(SHT3X_MODE);
+  writeRegisterInt(this->sensorAddress, SHT3X_MODE);
   wait(SHT3X_MODE);
 
-  Wire.requestFrom(this->sensorAddress, 6);
+  Wire.requestFrom((int) this->sensorAddress, 6);
   if (Wire.available() == 6) {
     for (int i=0; i<6; i++) {
   		data[i]=Wire.read();

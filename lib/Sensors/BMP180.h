@@ -1,8 +1,12 @@
+#ifndef bmp180_h
+#define bmp180_h
+
 #include <Arduino.h>
 #include <Sensor.h>
 #include <Wire.h>
 
 #define BMP180_ADDRESS  0x77
+#define BMP180_ID_REGISTER 0xD0
 #define BMP180_ID 0x55
 #define BMP180_MODE  ULTRA_HIGH_RESOLUTION
 
@@ -10,8 +14,8 @@ class BMP180 : public Sensor {
 public:
   float temperature;
   float pressure;
-  BMP180(int sensorAddress = BMP180_ADDRESS, int sensorID = BMP180_ID);
-  bool begin();
+  BMP180(byte sensorAddress = BMP180_ADDRESS, byte sensorRegister = BMP180_ID_REGISTER, byte sensorID = BMP180_ID);
+  void begin();
   void getValues();
 
 private:
@@ -57,10 +61,12 @@ private:
   int32_t UT;
   int32_t UP;
   int32_t B5;
+  void wait(uint16_t Mode);
   void readCalibrationData();
   void readUncompensatedTemperature();
   void readUncompensatedPressure();
   float calculateTrueTemperature();
   float calculateTruePressure();
-  void wait(uint16_t Mode);
 };
+
+#endif

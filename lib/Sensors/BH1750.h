@@ -1,3 +1,6 @@
+#ifndef bh1750_h
+#define bh1750_h
+
 #include <Arduino.h>
 #include <Sensor.h>
 #include <Wire.h>
@@ -9,6 +12,7 @@ class BH1750 : public Sensor {
 public:
   uint16_t illuminance;
   BH1750(byte sensorAddress = BH1750_ADDRESS);
+  void begin();
   void getValues();
 
 private:
@@ -22,3 +26,5 @@ private:
   };
   void wait(uint16 Mode);
 };
+
+#endif

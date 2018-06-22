@@ -2,14 +2,17 @@
 
 BH1750::BH1750(byte sensorAddress) {
   this->sensorAddress = sensorAddress;
+}
+
+void BH1750::begin() {
   this->isAvailable = this->checkSensorAvailability(this->sensorAddress);
 }
 
 void BH1750::getValues() {
-  writeDataByte(BH1750_MODE);
+  writeRegisterByte(this->sensorAddress, BH1750_MODE);
   wait(BH1750_MODE);
 
-  this->illuminance = readDataInt();
+  this->illuminance = readRegisterInt(this->sensorAddress);
 }
 
 void BH1750::wait(uint16_t Mode) {

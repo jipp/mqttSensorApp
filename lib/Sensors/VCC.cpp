@@ -1,6 +1,9 @@
 #include <VCC.h>
 
 VCC::VCC() {
+}
+
+void VCC::begin() {
   this->isAvailable = true;
 }
 

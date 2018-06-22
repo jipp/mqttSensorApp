@@ -1,3 +1,6 @@
+#ifndef sht3x_h
+#define sht3x_h
+
 #include <Arduino.h>
 #include <Sensor.h>
 #include <Wire.h>
@@ -10,6 +13,7 @@ public:
   float temperature;
   float humidity;
   SHT3X(byte sensorAddress = SHT3X_ADDRESS);
+  void begin();
   void getValues();
 
 private:
@@ -29,3 +33,5 @@ private:
   };
   void wait(uint32_t Mode);
 };
+
+#endif
