@@ -14,13 +14,14 @@ public:
   virtual void getValues() = 0;
   bool checkSensorAvailability(byte sensorAddress);
   bool checkSensorAvailability(byte sensorAddress, byte sensorIDRegister, byte value);
-  void writeRegisterByte(byte sensorAddress, byte registerAddress);
-  void writeRegisterByte(byte sensorAddress, byte registerAddress, byte registerValue);
-  void writeRegisterInt(byte sensorAddress, uint16_t registerAddress);
-  byte readRegisterByte(byte sensorAddress);
-  byte readRegisterByte(byte sensorAddress, byte registerAddress);
-  uint16_t readRegisterInt(byte sensorAddress);
-  uint16_t readRegisterInt(byte sensorAddress, byte registerAddress);
+  void writeRegister8(byte sensorAddress, byte registerAddress);
+  void writeRegister8(byte sensorAddress, byte registerAddress, byte registerValue);
+  void writeRegister16(byte sensorAddress, uint16_t registerAddress);
+  byte readRegister8(byte sensorAddress);
+  byte readRegister8(byte sensorAddress, byte registerAddress);
+  uint16_t readRegister16(byte sensorAddress);
+  uint16_t readRegister16(byte sensorAddress, byte registerAddress);
+  uint32_t readRegister24(byte sensorAddress, byte registerAddress);
 };
 
 #endif

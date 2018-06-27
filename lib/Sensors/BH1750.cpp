@@ -9,10 +9,10 @@ void BH1750::begin() {
 }
 
 void BH1750::getValues() {
-  writeRegisterByte(this->sensorAddress, BH1750_MODE);
+  writeRegister8(this->sensorAddress, BH1750_MODE);
   wait(BH1750_MODE);
 
-  this->illuminance = readRegisterInt(this->sensorAddress);
+  this->illuminance = readRegister16(this->sensorAddress);
 }
 
 void BH1750::wait(uint16_t Mode) {

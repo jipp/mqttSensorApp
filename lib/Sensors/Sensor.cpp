@@ -11,7 +11,7 @@ bool Sensor::checkSensorAvailability(byte sensorAddress) {
 
 bool Sensor::checkSensorAvailability(byte sensorAddress, byte registerAddress, byte value) {
   if (this->checkSensorAvailability(sensorAddress)) {
-    if (value == this->readRegisterByte(sensorAddress, registerAddress)) {
+    if (value == this->readRegister8(sensorAddress, registerAddress)) {
       return true;
     }
   };
@@ -19,27 +19,27 @@ bool Sensor::checkSensorAvailability(byte sensorAddress, byte registerAddress, b
   return false;
 }
 
-void Sensor::writeRegisterByte(byte sensorAddress, byte registerAddress) {
+void Sensor::writeRegister8(byte sensorAddress, byte registerAddress) {
   Wire.beginTransmission(sensorAddress);
   Wire.write(registerAddress);
   Wire.endTransmission();
 }
 
-void Sensor::writeRegisterByte(byte sensorAddress, byte registerAddress, byte registerValue) {
+void Sensor::writeRegister8(byte sensorAddress, byte registerAddress, byte registerValue) {
   Wire.beginTransmission(sensorAddress);
   Wire.write(registerAddress);
   Wire.write(registerValue);
   Wire.endTransmission();
 }
 
-void Sensor::writeRegisterInt(byte sensorAddress, uint16_t registerAddress) {
+void Sensor::writeRegister16(byte sensorAddress, uint16_t registerAddress) {
   Wire.beginTransmission(sensorAddress);
   Wire.write(registerAddress >> 8);
   Wire.write(registerAddress & 0xFF);
   Wire.endTransmission();
 }
 
-byte Sensor::readRegisterByte(byte sensorAddress) {
+byte Sensor::readRegister8(byte sensorAddress) {
   byte registerValue = 0x00;
 
   Wire.requestFrom((int) sensorAddress, 1);
@@ -50,13 +50,12 @@ byte Sensor::readRegisterByte(byte sensorAddress) {
   return registerValue;
 }
 
-byte Sensor::readRegisterByte(byte sensorAddress, byte registerAddress) {
+byte Sensor::readRegister8(byte sensorAddress, byte registerAddress) {
   byte registerValue = 0x00;
 
   Wire.beginTransmission(sensorAddress);
   Wire.write(registerAddress);
   Wire.endTransmission();
-  Wire.beginTransmission(sensorAddress);
   Wire.requestFrom((int) sensorAddress, 1);
   if (Wire.available() == 1) {
     registerValue = Wire.read();
@@ -66,7 +65,20 @@ byte Sensor::readRegisterByte(byte sensorAddress, byte registerAddress) {
   return registerValue;
 }
 
-uint16_t Sensor::readRegisterInt(byte sensorAddress, byte registerAddress) {
+uint16_t Sensor::readRegister16(byte sensorAddress) {
+  uint16_t registerValue = 0;
+
+  Wire.requestFrom((int) sensorAddress, 2);
+  if (Wire.available() == 2) {
+    registerValue = Wire.read();
+    registerValue <<= 8;
+    registerValue |= Wire.read();
+  }
+
+  return registerValue;
+}
+
+uint16_t Sensor::readRegister16(byte sensorAddress, byte registerAddress) {
   uint16_t registerValue = 0x00;
 
   Wire.beginTransmission(sensorAddress);
@@ -82,12 +94,17 @@ uint16_t Sensor::readRegisterInt(byte sensorAddress, byte registerAddress) {
   return registerValue;
 }
 
-uint16_t Sensor::readRegisterInt(byte sensorAddress) {
-  uint16_t registerValue = 0;
+uint32_t Sensor::readRegister24(byte sensorAddress, byte registerAddress) {
+  uint32_t registerValue = 0x00;
 
-  Wire.requestFrom((int) sensorAddress, 2);
-  if (Wire.available() == 2) {
+  Wire.beginTransmission(sensorAddress);
+  Wire.write(registerAddress);
+  Wire.endTransmission();
+  Wire.requestFrom((int) sensorAddress, 3);
+  if (Wire.available() == 3) {
     registerValue = Wire.read();
+    registerValue <<= 8;
+    registerValue |= Wire.read();
     registerValue <<= 8;
     registerValue |= Wire.read();
   }

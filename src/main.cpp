@@ -111,10 +111,10 @@ void publishValues() {
     pressureJson.add(bmp180.pressure);
   }
   if (bme280.isAvailable) {
-//    bmp180.getValues();
-//    temperatureJson.add(bmp180.temperature);
-//    pressureJson.add(bmp180.pressure);
-      Serial << "bme280 found" << endl;
+    bme280.getValues();
+    temperatureJson.add(bme280.temperature);
+    pressureJson.add(bme280.pressure);
+    humidityJson.add(bme280.humidity);
   }
 
   if (pubSubClient.connected()) {

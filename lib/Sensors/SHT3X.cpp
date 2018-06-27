@@ -11,7 +11,7 @@ void SHT3X::begin() {
 void SHT3X::getValues() {
   unsigned int data[6];
 
-  writeRegisterInt(this->sensorAddress, SHT3X_MODE);
+  writeRegister16(this->sensorAddress, SHT3X_MODE);
   wait(SHT3X_MODE);
 
   Wire.requestFrom((int) this->sensorAddress, 6);
