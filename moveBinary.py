@@ -4,6 +4,8 @@ import os
 
 
 def after_bin(source, target, env):
+    version = ""
+
     print "source: " + str(source[0])
     print "target: " + str(target[0])
 
@@ -12,6 +14,9 @@ def after_bin(source, target, env):
         if len(arr) == 2:
             if arr[0] == "VERSION":
                 version = arr[1]
+
+    if version is "":
+        version = "mqttSensorApp"
 
     path = "bin"
     srcFile = str(target[0])

@@ -5,6 +5,10 @@
 #define TIMER 60
 #endif
 
+#ifndef VERSION
+#define VERSION "mqttSensorApp"
+#endif
+
 const char* ssid_1 = "<wifi-ssid>";
 const char* password_1 = "<wifi-key>";
 const char* ssid_2 = "<wifi-ssid>";
