@@ -9,11 +9,7 @@
 #include <ArduinoJson.h>
 #include <Wire.h>
 
-#include <VCC.h>
-#include <BH1750.h>
-#include <SHT3X.h>
-#include <BMP180.h>
-#include <BME280.h>
+#include <i2cSensorLib.h>
 
 
 ADC_MODE(ADC_VCC);
