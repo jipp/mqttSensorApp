@@ -90,27 +90,27 @@ void publishValues() {
 
   if (vcc.isAvailable) {
     vcc.getValues();
-    vccJson.add(vcc.get(Sensor::VOLTAGE_MEASUREMENT));
+    vccJson.add(vcc.voltage);
   }
   if (bh1750.isAvailable) {
     bh1750.getValues();
-    illuminanceJson.add(bh1750.get(Sensor::ILLUMINANCE_MEASUREMENT));
+    illuminanceJson.add(bh1750.illuminance);
   }
   if (sht3x.isAvailable) {
     sht3x.getValues();
-    temperatureJson.add(sht3x.get(Sensor::TEMPERATURE_MEASUREMENT));
-    humidityJson.add(sht3x.get(Sensor::HUMIDITY_MEASUREMENT));
+    temperatureJson.add(sht3x.temperature);
+    humidityJson.add(sht3x.humidity);
   }
   if (bmp180.isAvailable) {
     bmp180.getValues();
-    temperatureJson.add(bmp180.get(Sensor::TEMPERATURE_MEASUREMENT));
-    pressureJson.add(bmp180.get(Sensor::PRESSURE_MEASUREMENT));
+    temperatureJson.add(bmp180.temperature);
+    pressureJson.add(bmp180.pressure);
   }
   if (bme280.isAvailable) {
     bme280.getValues();
-    temperatureJson.add(bme280.get(Sensor::TEMPERATURE_MEASUREMENT));
-    pressureJson.add(bme280.get(Sensor::PRESSURE_MEASUREMENT));
-    humidityJson.add(bme280.get(Sensor::HUMIDITY_MEASUREMENT));
+    temperatureJson.add(bme280.temperature);
+    pressureJson.add(bme280.pressure);
+    humidityJson.add(bme280.humidity);
   }
 
   if (pubSubClient.connected()) {
