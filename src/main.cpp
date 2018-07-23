@@ -8,6 +8,10 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
+#include <FS.h>
+
+//String realSize = String(ESP.getFlashChipRealSize());
+//String ideSize = String(ESP.getFlashChipSize());
 
 #include <i2cSensorLib.h>
 
@@ -45,6 +49,55 @@ void printSettings() {
   Serial << "mqtt Username: " << mqtt_username << endl;
   Serial << "topic: " << publishTopic << endl;
   Serial << endl;
+}
+
+void setupFS() {
+  File f;
+
+  SPIFFS.begin();
+  if (!SPIFFS.exists(VERSION)) {
+    Serial << "format - this can take several minutes" << endl;
+    SPIFFS.format();
+    f = SPIFFS.open(VERSION, "w");
+    f.close();
+    Serial << "done" << endl;
+  }
+}
+
+void writeData(String string) {
+  File dataTempHandler, dataHandler;
+
+  dataTempHandler = SPIFFS.open(dataTemp, "a");
+  dataTempHandler.println(string);
+
+  dataHandler = SPIFFS.open(data, "r");
+  for (int i=1; i<bufferLength; i++) {
+    if (dataHandler.available()) {
+      String line = dataHandler.readStringUntil('\n');
+      dataTempHandler.println(line);
+    } else {
+      break;
+    }
+  }
+
+  dataHandler.close();
+  dataTempHandler.close();
+
+  SPIFFS.remove(data);
+  SPIFFS.rename(dataTemp, data);
+}
+
+void readData() {
+  File f;
+
+  Serial.println();
+  f = SPIFFS.open("/data.txt", "r");
+  while (f.available()) {
+    String line = f.readStringUntil('\n');
+    Serial.println(line);
+  }
+  f.close();
+  Serial.println();
 }
 
 void connectWiFi() {
@@ -120,6 +173,9 @@ void publishValues() {
       Serial << " < " << publishTopic << ": " << jsonString << endl;
     }
   }
+
+  writeData(jsonString);
+  readData();
 }
 
 bool connect() {
@@ -148,6 +204,8 @@ void setup() {
   Wire.begin();
 
   Serial.setDebugOutput(false);
+
+  setupFS();
 
   setupWiFi();
   setupID();
