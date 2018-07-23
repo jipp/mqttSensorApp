@@ -23,4 +23,8 @@ const char* mqtt_topic_prefix = "<mqtt-topic-prefix>";
 const unsigned long timerMeasureIntervall = TIMER;
 const unsigned long timerLastReconnect = 60;
 
+const char* data = "/data.txt";
+const char* dataTemp = "/dataTemp.txt";
+const int bufferLength = 20;
+
 #endif
