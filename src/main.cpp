@@ -5,6 +5,8 @@
 #include <Streaming.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
@@ -19,6 +21,7 @@ ADC_MODE(ADC_VCC);
 ESP8266WiFiMulti wifiMulti;
 PubSubClient pubSubClient;
 WiFiClient wifiClient;
+ESP8266WebServer server(80);
 
 VCC vcc = VCC();
 BH1750 bh1750 = BH1750();
@@ -52,8 +55,10 @@ void setupFS() {
   File f;
 
   SPIFFS.begin();
+
   f = SPIFFS.open(VERSION, "w");
   f.close();
+
   if (SPIFFS.exists(VERSION)) {
     SPIFFS.remove(VERSION);
   } else {
@@ -61,6 +66,21 @@ void setupFS() {
     SPIFFS.format();
     Serial << "done" << endl;
   }
+}
+
+void handleNotFound() {
+  String message = "File Not Found\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+  for (uint8_t i = 0; i < server.args(); i++) {
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+  server.send(404, "text/plain", message);
 }
 
 void writeData(String string) {
@@ -97,6 +117,19 @@ void readData() {
   }
   f.close();
   Serial.println();
+}
+
+String readDataLine() {
+  File f;
+  String line;
+
+  f = SPIFFS.open("/data.txt", "r");
+  if (f.available()) {
+    line = f.readStringUntil('\n');
+  }
+  f.close();
+
+  return line;
 }
 
 void connectWiFi() {
@@ -217,9 +250,21 @@ void setup() {
   if (connect()) {
     publishValues();
   }
+
+  if (MDNS.begin(id)) {
+    Serial.println("MDNS responder started");
+  }
+
+  server.on("/value", []() {
+    server.send(200, "application/json", readDataLine());
+  });
+  server.serveStatic("/", SPIFFS, "/");
+  server.onNotFound(handleNotFound);
+  server.begin();
 }
 
 void loop() {
+  server.handleClient();
   if (wifiMulti.run() == WL_CONNECTED) {
     if (!pubSubClient.connected()) {
       if (millis() - timerLastReconnectStart > timerLastReconnect * 1000) {
