@@ -19,7 +19,6 @@ eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.
 - [X] Ringpuffer for data logging
 - [ ] integrated webserver displaying logged data
 - [ ] OTA
-- [ ] deepsleep
 
 ## needed libraries
  * Streaming

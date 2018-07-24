@@ -52,11 +52,13 @@ void setupFS() {
   File f;
 
   SPIFFS.begin();
-  if (!SPIFFS.exists(VERSION)) {
+  f = SPIFFS.open(VERSION, "w");
+  f.close();
+  if (SPIFFS.exists(VERSION)) {
+    SPIFFS.remove(VERSION);
+  } else {
     Serial << "format - this can take several minutes" << endl;
     SPIFFS.format();
-    f = SPIFFS.open(VERSION, "w");
-    f.close();
     Serial << "done" << endl;
   }
 }
@@ -172,7 +174,6 @@ void publishValues() {
   }
 
   writeData(jsonString);
-  readData();
 }
 
 bool connect() {
@@ -203,7 +204,6 @@ void setup() {
   Serial.setDebugOutput(false);
 
   setupFS();
-
   setupWiFi();
   setupID();
   setupTopic();
