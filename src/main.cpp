@@ -10,9 +10,6 @@
 #include <Wire.h>
 #include <FS.h>
 
-//String realSize = String(ESP.getFlashChipRealSize());
-//String ideSize = String(ESP.getFlashChipSize());
-
 #include <i2cSensorLib.h>
 
 
