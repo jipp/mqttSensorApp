@@ -147,6 +147,21 @@ void setupWiFi() {
   connectWiFi();
 }
 
+void setupMDNS() {
+  if (MDNS.begin(id)) {
+    Serial.println("MDNS responder started");
+  }
+}
+
+void setupWebServer() {
+  server.on("/value", []() {
+    server.send(200, "application/json", readDataLine());
+  });
+  server.serveStatic("/", SPIFFS, "/");
+  server.onNotFound(handleNotFound);
+  server.begin();
+}
+
 void setupID() {
   byte mac[6];
 
@@ -239,6 +254,8 @@ void setup() {
   setupFS();
   setupWiFi();
   setupID();
+  setupMDNS();
+  setupWebServer();
   setupTopic();
   printSettings();
   setupPubSub();
@@ -250,17 +267,6 @@ void setup() {
   if (connect()) {
     publishValues();
   }
-
-  if (MDNS.begin(id)) {
-    Serial.println("MDNS responder started");
-  }
-
-  server.on("/value", []() {
-    server.send(200, "application/json", readDataLine());
-  });
-  server.serveStatic("/", SPIFFS, "/");
-  server.onNotFound(handleNotFound);
-  server.begin();
 }
 
 void loop() {
