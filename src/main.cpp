@@ -36,35 +36,54 @@ unsigned long timerLastReconnectStart = 0;
 
 
 void printSettings() {
-  Serial << endl << endl << "Reset Info: " << ESP.getResetInfo() << endl;
-  Serial << endl << "VERSION: " << VERSION << endl;
-  #ifdef DEEPSLEEP
-  Serial << "DEEPSLEEP: " << DEEPSLEEP << " s" << endl;
-  #endif
-  Serial << "TIMER: " << TIMER << "s" << endl;
-  Serial << "IP: " << WiFi.localIP() << endl;
-  Serial << "id: " << id << endl;
-  Serial << "mqtt Server: " << mqtt_server << endl;
-  Serial << "mqtt Port: " << mqtt_port << endl;
-  Serial << "mqtt Username: " << mqtt_username << endl;
-  Serial << "topic: " << publishTopic << endl;
+  Serial << endl << endl;
+  Serial << "VERSION: " << VERSION << endl;
+  Serial << "TIMER:   " << TIMER << "s" << endl;
   Serial << endl;
 }
 
 void setupFS() {
-  File f;
-
-  SPIFFS.begin();
-
-  f = SPIFFS.open(VERSION, "w");
-  f.close();
-
-  if (SPIFFS.exists(VERSION)) {
-    SPIFFS.remove(VERSION);
+  Serial << "SPIFFS:       ";
+  if (SPIFFS.begin()) {
+    Serial << "mounted" << endl;
   } else {
-    Serial << "format - this can take several minutes" << endl;
-    SPIFFS.format();
-    Serial << "done" << endl;
+    Serial << "not mounted" << endl;
+  };
+}
+
+void connectWiFi() {
+  Serial << "connecting ";
+  while (wifiMulti.run() != WL_CONNECTED) {
+    Serial << ".";
+    delay(100);
+  }
+  Serial << " connected" << endl;
+  Serial << "IP:           " << WiFi.localIP() << endl;
+}
+
+void setupWiFi() {
+  Serial << "WiFi:         ";
+  wifiMulti.addAP(ssid_1, password_1);
+  wifiMulti.addAP(ssid_2, password_2);
+  wifiMulti.addAP(ssid_3, password_3);
+  connectWiFi();
+}
+
+void setupID() {
+  byte mac[6];
+
+  Serial << "id:           ";
+  WiFi.macAddress(mac);
+  sprintf(id, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  Serial << id << endl;
+}
+
+void setupMDNS() {
+  Serial << "MDNS:         ";
+  if (MDNS.begin(id)) {
+    Serial << "started" << endl;
+  } else {
+    Serial << "not started" << endl;
   }
 }
 
@@ -81,6 +100,65 @@ void handleNotFound() {
     message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
   }
   server.send(404, "text/plain", message);
+}
+
+String readDataLine() {
+  File file;
+  String line;
+
+  file = SPIFFS.open(data, "r");
+  if (file.available()) {
+    line = file.readStringUntil('\n');
+  }
+  file.close();
+
+  return line;
+}
+
+void setupWebServer() {
+  Serial << "Web Server:   ";
+  server.on("/value", []() {
+    server.send(200, "application/json", readDataLine());
+  });
+  server.serveStatic("/", SPIFFS, "/");
+  server.onNotFound(handleNotFound);
+  server.begin();
+  Serial << "started" << endl;
+}
+
+void setupTopic() {
+  Serial << "mqtt topic:   ";
+  publishTopic = id + String(mqtt_topic_prefix);
+  Serial << publishTopic << endl;
+}
+
+void setupPubSub() {
+  Serial << "mqtt server:  " << mqtt_server << endl;
+  Serial << "mqtt port:    " << mqtt_port << endl;
+
+  pubSubClient.setClient(wifiClient);
+  pubSubClient.setServer(mqtt_server, String(mqtt_port).toInt());
+}
+
+bool connect() {
+  bool connected = false;
+
+  Serial << "mqtt connect: ";
+  if ((String(mqtt_username).length() == 0) || (String(mqtt_password).length() == 0)) {
+    Serial << "without authentication" << endl;
+    connected = pubSubClient.connect(id);
+  } else {
+    Serial << "with authentication" << endl;
+    connected = pubSubClient.connect(id, String(mqtt_username).c_str(), String(mqtt_password).c_str());
+  }
+  Serial << "mqtt status:  ";
+  if (connected) {
+    Serial << "connected" << endl;
+  } else {
+    Serial << "failed, rc=" << pubSubClient.state() << endl;
+  }
+
+  return pubSubClient.connected();
 }
 
 void writeData(String string) {
@@ -117,65 +195,6 @@ void readData() {
   }
   f.close();
   Serial.println();
-}
-
-String readDataLine() {
-  File f;
-  String line;
-
-  f = SPIFFS.open("/data.txt", "r");
-  if (f.available()) {
-    line = f.readStringUntil('\n');
-  }
-  f.close();
-
-  return line;
-}
-
-void connectWiFi() {
-  while (wifiMulti.run() != WL_CONNECTED) {
-    Serial << ".";
-    delay(100);
-  }
-  Serial << " connected!" << endl;
-}
-
-void setupWiFi() {
-  Serial << endl << "connecting:" << endl;
-  wifiMulti.addAP(ssid_1, password_1);
-  wifiMulti.addAP(ssid_2, password_2);
-  connectWiFi();
-}
-
-void setupMDNS() {
-  if (MDNS.begin(id)) {
-    Serial.println("MDNS responder started");
-  }
-}
-
-void setupWebServer() {
-  server.on("/value", []() {
-    server.send(200, "application/json", readDataLine());
-  });
-  server.serveStatic("/", SPIFFS, "/");
-  server.onNotFound(handleNotFound);
-  server.begin();
-}
-
-void setupID() {
-  byte mac[6];
-
-  WiFi.macAddress(mac);
-  sprintf(id, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-}
-
-void setupTopic() {
-  publishTopic = id + String(mqtt_topic_prefix);
-}
-
-void setupPubSub() {
-  pubSubClient.setClient(wifiClient);
-  pubSubClient.setServer(mqtt_server, String(mqtt_port).toInt());
 }
 
 void publishValues() {
@@ -224,46 +243,29 @@ void publishValues() {
   writeData(jsonString);
 }
 
-bool connect() {
-  bool connected = false;
-
-  Serial << "Attempting MQTT connection (~5s) ..." << endl;
-  if ((String(mqtt_username).length() == 0) || (String(mqtt_password).length() == 0)) {
-    Serial << "trying without MQTT authentication" << endl;
-    connected = pubSubClient.connect(id);
-  } else {
-    Serial << "trying with MQTT authentication" << endl;
-    connected = pubSubClient.connect(id, String(mqtt_username).c_str(), String(mqtt_password).c_str());
-  }
-  if (connected) {
-    Serial << "MQTT connected, rc=" << pubSubClient.state() << endl;
-  } else {
-    Serial << "MQTT failed, rc=" << pubSubClient.state() << endl;
-  }
-
-  return pubSubClient.connected();
-}
-
 
 void setup() {
   Serial.begin(115200);
-  Wire.begin();
-
   Serial.setDebugOutput(false);
+
+  Wire.begin();
+  printSettings();
 
   setupFS();
   setupWiFi();
   setupID();
   setupMDNS();
   setupWebServer();
+
   setupTopic();
-  printSettings();
   setupPubSub();
+
   vcc.begin();
   bh1750.begin();
   sht3x.begin();
   bmp180.begin();
   bme280.begin();
+
   if (connect()) {
     publishValues();
   }

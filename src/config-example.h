@@ -13,6 +13,8 @@ const char* ssid_1 = "<wifi-ssid>";
 const char* password_1 = "<wifi-key>";
 const char* ssid_2 = "<wifi-ssid>";
 const char* password_2 = "<wifi-key>";
+const char* ssid_3 = "<wifi-ssid>";
+const char* password_3 = "<wifi-key>";
 
 const char* mqtt_server = "<mqtt-broker>";
 const char* mqtt_port = "<port>";
