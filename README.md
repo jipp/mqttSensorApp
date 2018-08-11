@@ -1,5 +1,5 @@
 # mqttSensorApp
-Sensor App using mqtt as transport protocol based on ESP processor
+Sensor App using mqtt as transport protocol based on ESP processor. The ESP8266 can be used as AP or Client.
 
 ## topic structure
 `<macAddress w/o ":">/value`
@@ -13,12 +13,20 @@ In case you connect different sensors and multiple values are read for the same 
 
 eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.56543],"pressure":[997.304]}`
 
+## WiFi Mode
+- WIFI_MODE WIFI_AP: Access Point
+_ WIFI_MODE WIFI_STA: Client
+
+## Deep Sleep mode
+Running with Deep Sleep will configure WiFi as Client.
+
 ## supported Features
 - [X] connect to WiFi
+- [X] act as AP for direct measurement
 - [X] publish values using mqtt
-- [X] Ringpuffer for data logging
-- [ ] integrated webserver displaying logged data
-- [ ] OTA
+- [X] webserver displaying current data
+- [X] OTA
+- [X] DeppSleep
 
 ## needed libraries
  * Streaming

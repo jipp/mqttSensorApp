@@ -3,25 +3,18 @@
 #include "config.h"
 
 #include <Streaming.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266WiFiMulti.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
-#include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
-#include <FS.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
+#include <ArduinoOTA.h>
+#include <ESP8266WebServer.h>
+#include <PubSubClient.h>
 
 #include <i2cSensorLib.h>
 
 
 ADC_MODE(ADC_VCC);
-
-
-ESP8266WiFiMulti wifiMulti;
-PubSubClient pubSubClient;
-WiFiClient wifiClient;
-ESP8266WebServer server(80);
 
 VCC vcc = VCC();
 BH1750 bh1750 = BH1750();
@@ -29,182 +22,42 @@ SHT3X sht3x = SHT3X(0x45);
 BMP180 bmp180 = BMP180();
 BME280 bme280 = BME280();
 
-char id[13];
-String publishTopic;
+String value;
 unsigned long timerMeasureIntervallStart = 0;
-unsigned long timerLastReconnectStart = 0;
 
+ESP8266WebServer server(80);
+ESP8266WiFiMulti wifiMulti;
+PubSubClient pubSubClient;
+WiFiClient wifiClient;
 
-void printSettings() {
-  Serial << endl << endl;
-  Serial << "VERSION: " << VERSION << endl;
-  Serial << "TIMER:   " << TIMER << "s" << endl;
-  Serial << endl;
+char id[13];
+String mqttTopic;
+
+void printVersion() {
+  Serial << endl << endl << "VERSION:      " << VERSION << endl << endl;
 }
 
-void setupFS() {
-  Serial << "SPIFFS:       ";
-  if (SPIFFS.begin()) {
-    Serial << "mounted" << endl;
-  } else {
-    Serial << "not mounted" << endl;
-  };
+void setupSensors() {
+  vcc.begin();
+  vcc.isAvailable    ? Serial << "vcc:          OK" << endl : Serial << "vcc:          NOK" << endl;
+  bh1750.begin();
+  bh1750.isAvailable ? Serial << "bh1750:       OK" << endl : Serial << "bh1750:       NOK" << endl;
+  sht3x.begin();
+  sht3x.isAvailable  ? Serial << "sht3x:        OK" << endl : Serial << "sht3x:        NOK" << endl;
+  bmp180.begin();
+  bmp180.isAvailable ? Serial << "bmp180:       OK" << endl : Serial << "bmp180:       NOK" << endl;
+  bme280.begin();
+  bme280.isAvailable ? Serial << "bme280:       OK" << endl : Serial << "bme280:       NOK" << endl;
 }
 
-void connectWiFi() {
-  Serial << "connecting ";
-  while (wifiMulti.run() != WL_CONNECTED) {
-    Serial << ".";
-    delay(100);
-  }
-  Serial << " connected" << endl;
-  Serial << "IP:           " << WiFi.localIP() << endl;
-}
-
-void setupWiFi() {
-  Serial << "WiFi:         ";
-  wifiMulti.addAP(ssid_1, password_1);
-  wifiMulti.addAP(ssid_2, password_2);
-  wifiMulti.addAP(ssid_3, password_3);
-  connectWiFi();
-}
-
-void setupID() {
-  byte mac[6];
-
-  Serial << "id:           ";
-  WiFi.macAddress(mac);
-  sprintf(id, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  Serial << id << endl;
-}
-
-void setupMDNS() {
-  Serial << "MDNS:         ";
-  if (MDNS.begin(id)) {
-    Serial << "started" << endl;
-  } else {
-    Serial << "not started" << endl;
-  }
-}
-
-void handleNotFound() {
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
-  for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
-  }
-  server.send(404, "text/plain", message);
-}
-
-String readDataLine() {
-  File file;
-  String line;
-
-  file = SPIFFS.open(data, "r");
-  if (file.available()) {
-    line = file.readStringUntil('\n');
-  }
-  file.close();
-
-  return line;
-}
-
-void setupWebServer() {
-  Serial << "Web Server:   ";
-  server.on("/value", []() {
-    server.send(200, "application/json", readDataLine());
-  });
-  server.serveStatic("/", SPIFFS, "/");
-  server.onNotFound(handleNotFound);
-  server.begin();
-  Serial << "started" << endl;
-}
-
-void setupTopic() {
-  Serial << "mqtt topic:   ";
-  publishTopic = id + String(mqtt_topic_prefix);
-  Serial << publishTopic << endl;
-}
-
-void setupPubSub() {
-  Serial << "mqtt server:  " << mqtt_server << endl;
-  Serial << "mqtt port:    " << mqtt_port << endl;
-
-  pubSubClient.setClient(wifiClient);
-  pubSubClient.setServer(mqtt_server, String(mqtt_port).toInt());
-}
-
-bool connect() {
-  bool connected = false;
-
-  Serial << "mqtt connect: ";
-  if ((String(mqtt_username).length() == 0) || (String(mqtt_password).length() == 0)) {
-    Serial << "without authentication" << endl;
-    connected = pubSubClient.connect(id);
-  } else {
-    Serial << "with authentication" << endl;
-    connected = pubSubClient.connect(id, String(mqtt_username).c_str(), String(mqtt_password).c_str());
-  }
-  Serial << "mqtt status:  ";
-  if (connected) {
-    Serial << "connected" << endl;
-  } else {
-    Serial << "failed, rc=" << pubSubClient.state() << endl;
-  }
-
-  return pubSubClient.connected();
-}
-
-void writeData(String string) {
-  File dataTempHandler, dataHandler;
-
-  dataTempHandler = SPIFFS.open(dataTemp, "a");
-  dataTempHandler.println(string);
-
-  dataHandler = SPIFFS.open(data, "r");
-  for (int i=1; i<bufferLength; i++) {
-    if (dataHandler.available()) {
-      String line = dataHandler.readStringUntil('\n');
-      dataTempHandler.println(line);
-    } else {
-      break;
-    }
-  }
-
-  dataHandler.close();
-  dataTempHandler.close();
-
-  SPIFFS.remove(data);
-  SPIFFS.rename(dataTemp, data);
-}
-
-void readData() {
-  File f;
-
-  Serial.println();
-  f = SPIFFS.open("/data.txt", "r");
-  while (f.available()) {
-    String line = f.readStringUntil('\n');
-    Serial.println(line);
-  }
-  f.close();
-  Serial.println();
-}
-
-void publishValues() {
+String getValue() {
   DynamicJsonBuffer jsonBuffer;
-  JsonObject& json = jsonBuffer.createObject();
-  JsonArray& vccJson = json.createNestedArray("vcc");
-  JsonArray& illuminanceJson = json.createNestedArray("illuminance");
-  JsonArray& temperatureJson = json.createNestedArray("temperature");
-  JsonArray& humidityJson = json.createNestedArray("humidity");
-  JsonArray& pressureJson = json.createNestedArray("pressure");
+  JsonObject& jsonObject = jsonBuffer.createObject();
+  JsonArray& vccJson = jsonObject.createNestedArray("vcc");
+  JsonArray& illuminanceJson = jsonObject.createNestedArray("illuminance");
+  JsonArray& temperatureJson = jsonObject.createNestedArray("temperature");
+  JsonArray& humidityJson = jsonObject.createNestedArray("humidity");
+  JsonArray& pressureJson = jsonObject.createNestedArray("pressure");
   String jsonString;
 
   if (vcc.isAvailable) {
@@ -232,63 +85,220 @@ void publishValues() {
     humidityJson.add(bme280.get(Sensor::HUMIDITY_MEASUREMENT));
   }
 
-  if (pubSubClient.connected()) {
-    jsonString = "";
-    json.printTo(jsonString);
-    if (pubSubClient.publish(publishTopic.c_str(), jsonString.c_str())) {
-      Serial << " < " << publishTopic << ": " << jsonString << endl;
-    }
-  }
+  jsonString = "";
+  jsonObject.printTo(jsonString);
 
-  writeData(jsonString);
+  return jsonString;
 }
 
+void showValue(String value) {
+  Serial << "value:        " << value << endl;
+}
+
+void setupWiFi(WiFiMode_t mode) {
+  Serial << "WiFi Mode:    ";
+  if (mode == WIFI_AP) {
+    WiFi.mode(mode);
+    WiFi.softAP(ssid_AP);
+    Serial << WiFi.getMode() << endl;
+    Serial << "IP:           " << WiFi.softAPIP() << endl;
+  }
+  if (mode == WIFI_STA) {
+    WiFi.mode(mode);
+    wifiMulti.addAP(ssid_STA_1, password_STA_1);
+    wifiMulti.addAP(ssid_STA_2, password_STA_2);
+    wifiMulti.addAP(ssid_STA_3, password_STA_3);
+    Serial << WiFi.getMode() << endl;
+    Serial << "hostname:     " << WiFi.hostname() << endl;
+  }
+}
+
+void connectWiFi() {
+  int retryCounter = 0;
+  if (WiFi.getMode() == WIFI_STA) {
+    Serial << "WiFi:         connecting ";
+    while (wifiMulti.run() != WL_CONNECTED) {
+      Serial << ".";
+      delay(100);
+      retryCounter ++;
+      if (retryCounter > retryLimit) {
+        Serial << " not connected" << endl;
+        Serial << "              restarting now and retrying in " << retryTimer << " sec" << endl;
+        yield();
+        ESP.deepSleep(retryTimer * 1000000);
+//        ESP.restart();
+      }
+    }
+    Serial << " connected" << endl;
+    Serial << "IP:           " << WiFi.localIP() << endl;
+    Serial << "RSSI:         " << WiFi.RSSI() << endl;
+  }
+}
+
+void setupOTA() {
+  Serial << "OTA:          ";
+  if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED) {
+
+    ArduinoOTA.onStart([]() {
+      Serial.println("Start");
+    });
+
+    ArduinoOTA.onEnd([]() {
+      Serial.println("\nEnd");
+    });
+
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));;Serial.println();
+    });
+
+    ArduinoOTA.onError([](ota_error_t error) {
+      Serial.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+      else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    });
+
+    ArduinoOTA.begin();
+    Serial << "started" << endl;
+  } else {
+    Serial << "not started" << endl;
+  }
+}
+
+void setupWebServer() {
+  Serial << "Web Server:   ";
+  if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED) {
+
+    server.onNotFound([]() {
+      server.send(200, "application/json", value);
+    });
+
+    server.begin();
+    Serial << "started" << endl;
+  } else {
+    Serial << "not started" << endl;
+  }
+}
+
+void setupID() {
+  byte mac[6];
+
+  Serial << "id:           ";
+  WiFi.macAddress(mac);
+  sprintf(id, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  Serial << id << endl;
+}
+
+void setupMqttTopic() {
+  Serial << "mqtt topic:   ";
+  mqttTopic = id + String(mqtt_topic_prefix);
+  Serial << mqttTopic << endl;
+}
+
+void setupMqttServer() {
+  Serial << "mqtt server:  " << mqtt_server << endl;
+  Serial << "mqtt port:    " << mqtt_port << endl;
+
+  pubSubClient.setClient(wifiClient);
+  pubSubClient.setServer(mqtt_server, String(mqtt_port).toInt());
+}
+
+void connectMqtt() {
+  Serial << "mqtt:         ";
+  Serial << "connecting ... ";
+
+  if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED) {
+    if (!pubSubClient.connected()) {
+      if ((String(mqtt_username).length() == 0) || (String(mqtt_password).length() == 0)) {
+        Serial << "(without Authentication) ";
+        pubSubClient.connect(id);
+      } else {
+        Serial << "(with Authentication) ";
+        pubSubClient.connect(id, String(mqtt_username).c_str(), String(mqtt_password).c_str());
+      }
+      if (pubSubClient.connected()) {
+        Serial << "connected" << endl;
+      } else {
+        Serial << "not connected (rc=" << pubSubClient.state() << ")" << endl;
+      }
+    }
+  } else {
+    Serial << "not connected (no wifi)" << endl;
+  }
+}
+
+void publishMqtt(String value) {
+  boolean published = false;
+
+  Serial << "mqtt:         ";
+  Serial << "publishing ... ";
+
+  if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED) {
+    if (pubSubClient.connected()) {
+      published = pubSubClient.publish(mqttTopic.c_str(), value.c_str());
+    } else {
+      Serial << "not connected" << endl;
+      connectMqtt();
+      Serial << "mqtt:         ";
+      Serial << "publishing ... ";
+      published = pubSubClient.publish(mqttTopic.c_str(), value.c_str());
+    }
+    if (published) {
+      Serial << "published" << endl;
+    } else {
+      Serial << "not published" << endl;
+    }
+  } else {
+    Serial << "not published (no wifi)" << endl;
+  }
+}
 
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(false);
-
   Wire.begin();
-  printSettings();
 
-  setupFS();
-  setupWiFi();
-  setupID();
-  setupMDNS();
+  printVersion();
+  setupSensors();
+
+  #ifdef DEEPSLEEP
+  setupWiFi(WIFI_STA);
+  #else
+  setupWiFi(WIFI_MODE);
+  #endif
+  connectWiFi();
+
+  #ifndef DEEPSLEEP
+  setupOTA();
   setupWebServer();
+  #endif
 
-  setupTopic();
-  setupPubSub();
-
-  vcc.begin();
-  bh1750.begin();
-  sht3x.begin();
-  bmp180.begin();
-  bme280.begin();
-
-  if (connect()) {
-    publishValues();
-  }
+  setupID();
+  setupMqttTopic();
+  setupMqttServer();
+  connectMqtt();
 }
 
 void loop() {
-  server.handleClient();
-  if (wifiMulti.run() == WL_CONNECTED) {
-    if (!pubSubClient.connected()) {
-      if (millis() - timerLastReconnectStart > timerLastReconnect * 1000) {
-        timerLastReconnectStart = millis();
-        if (connect()) {
-          timerLastReconnectStart = 0;
-        }
-      }
-    } else {
-      pubSubClient.loop();
-      if (millis() - timerMeasureIntervallStart > timerMeasureIntervall * 1000) {
-        timerMeasureIntervallStart = millis();
-        publishValues();
-      }
-    }
-  } else {
-    connectWiFi();
+  if (WiFi.getMode() == WIFI_AP or wifiMulti.run() == WL_CONNECTED) {
+    #ifndef DEEPSLEEP
+    ArduinoOTA.handle();
+    server.handleClient();
+    #endif
+    pubSubClient.loop();
+  }
+
+  if (millis() - timerMeasureIntervallStart > timerMeasureIntervall * 1000) {
+    timerMeasureIntervallStart = millis();
+    value = getValue();
+    showValue(value);
+    publishMqtt(value);
+    #ifdef DEEPSLEEP
+    Serial << "deepsleep:    " << DEEPSLEEP << " sec" << endl;
+    yield();
+    ESP.deepSleep(DEEPSLEEP * 1000000);
+    #endif
   }
 }
