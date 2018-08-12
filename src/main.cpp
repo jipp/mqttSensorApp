@@ -126,7 +126,7 @@ void connectWiFi() {
         Serial << "              restarting now and retrying in " << retryTimer << " sec" << endl;
         yield();
         ESP.deepSleep(retryTimer * 1000000);
-//        ESP.restart();
+        //        ESP.restart();
       }
     }
     Serial << " connected" << endl;
@@ -192,66 +192,74 @@ void setupID() {
 }
 
 void setupMqttTopic() {
-  Serial << "mqtt topic:   ";
-  mqttTopic = id + String(mqtt_topic_prefix);
-  Serial << mqttTopic << endl;
+  if (String(mqtt_server).length() != 0) {
+    Serial << "mqtt topic:   ";
+    mqttTopic = id + String(mqtt_topic_prefix);
+    Serial << mqttTopic << endl;
+  }
 }
 
 void setupMqttServer() {
-  Serial << "mqtt server:  " << mqtt_server << endl;
-  Serial << "mqtt port:    " << mqtt_port << endl;
+  if (String(mqtt_server).length() != 0) {
+    Serial << "mqtt server:  " << mqtt_server << endl;
+    Serial << "mqtt port:    " << mqtt_port << endl;
 
-  pubSubClient.setClient(wifiClient);
-  pubSubClient.setServer(mqtt_server, String(mqtt_port).toInt());
+    pubSubClient.setClient(wifiClient);
+    pubSubClient.setServer(mqtt_server, String(mqtt_port).toInt());
+  }
 }
 
 void connectMqtt() {
-  Serial << "mqtt:         ";
-  Serial << "connecting ... ";
+  if (String(mqtt_server).length() != 0) {
+    Serial << "mqtt:         ";
+    Serial << "connecting ... ";
 
-  if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED) {
-    if (!pubSubClient.connected()) {
-      if ((String(mqtt_username).length() == 0) || (String(mqtt_password).length() == 0)) {
-        Serial << "(without Authentication) ";
-        pubSubClient.connect(id);
-      } else {
-        Serial << "(with Authentication) ";
-        pubSubClient.connect(id, String(mqtt_username).c_str(), String(mqtt_password).c_str());
+    if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED) {
+      if (!pubSubClient.connected()) {
+        if ((String(mqtt_username).length() == 0) || (String(mqtt_password).length() == 0)) {
+          Serial << "(without Authentication) ";
+          pubSubClient.connect(id);
+        } else {
+          Serial << "(with Authentication) ";
+          pubSubClient.connect(id, String(mqtt_username).c_str(), String(mqtt_password).c_str());
+        }
+        if (pubSubClient.connected()) {
+          Serial << "connected" << endl;
+        } else {
+          Serial << "not connected (rc=" << pubSubClient.state() << ")" << endl;
+        }
       }
-      if (pubSubClient.connected()) {
-        Serial << "connected" << endl;
-      } else {
-        Serial << "not connected (rc=" << pubSubClient.state() << ")" << endl;
-      }
+    } else {
+      Serial << "not connected (no wifi)" << endl;
     }
-  } else {
-    Serial << "not connected (no wifi)" << endl;
   }
 }
 
 void publishMqtt(String value) {
-  boolean published = false;
+  if (String(mqtt_server).length() != 0) {
+    boolean published = false;
 
-  Serial << "mqtt:         ";
-  Serial << "publishing ... ";
+    Serial << "mqtt:         ";
+    Serial << "publishing ... ";
 
-  if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED) {
-    if (pubSubClient.connected()) {
-      published = pubSubClient.publish(mqttTopic.c_str(), value.c_str());
+    if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED) {
+      if (pubSubClient.connected()) {
+        published = pubSubClient.publish(mqttTopic.c_str(), value.c_str());
+      } else {
+        Serial << "not connected" << endl;
+        connectMqtt();
+        Serial << "mqtt:         ";
+        Serial << "publishing ... ";
+        published = pubSubClient.publish(mqttTopic.c_str(), value.c_str());
+      }
+      if (published) {
+        Serial << "published" << endl;
+      } else {
+        Serial << "not published" << endl;
+      }
     } else {
-      Serial << "not connected" << endl;
-      connectMqtt();
-      Serial << "mqtt:         ";
-      Serial << "publishing ... ";
-      published = pubSubClient.publish(mqttTopic.c_str(), value.c_str());
+      Serial << "not published (no wifi)" << endl;
     }
-    if (published) {
-      Serial << "published" << endl;
-    } else {
-      Serial << "not published" << endl;
-    }
-  } else {
-    Serial << "not published (no wifi)" << endl;
   }
 }
 
