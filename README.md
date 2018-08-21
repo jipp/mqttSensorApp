@@ -15,7 +15,7 @@ eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.
 
 ## WiFi Mode
 - WIFI_MODE WIFI_AP: Access Point
-_ WIFI_MODE WIFI_STA: Client
+- WIFI_MODE WIFI_STA: Client
 
 ## Deep Sleep mode
 Running with Deep Sleep will configure WiFi as Client.
