@@ -14,8 +14,8 @@ In case you connect different sensors and multiple values are read for the same 
 eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.56543],"pressure":[997.304]}`
 
 ## WiFi Mode
-- WIFI_MODE WIFI_AP: Access Point
-- WIFI_MODE WIFI_STA: Client
+- Access Point: WIFI_MODE WIFI_AP
+- Client: WIFI_MODE WIFI_STA
 
 ## Deep Sleep mode
 Running with Deep Sleep will configure WiFi as Client.
@@ -26,7 +26,7 @@ Running with Deep Sleep will configure WiFi as Client.
 - [X] publish values using mqtt
 - [X] webserver displaying current data
 - [X] OTA
-- [X] DeppSleep
+- [X] DeepSleep
 - [X] LED shows WiFi status
 
 ## needed libraries
