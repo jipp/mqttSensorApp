@@ -33,6 +33,17 @@ WiFiClient wifiClient;
 char id[13];
 String mqttTopic;
 
+void setLED() {
+//  Serial << "LED:      ";
+  if (WiFi.getMode() == WIFI_AP or wifiMulti.run() == WL_CONNECTED) {
+    digitalWrite(LED_BUILTIN, HIGH);
+//    Serial << "ON" << endl;
+  } else {
+    digitalWrite(LED_BUILTIN, LOW);
+//    Serial << "OFF" << endl;
+  }
+}
+
 void printVersion() {
   Serial << endl << endl << "VERSION:      " << VERSION << endl << endl;
 }
@@ -123,6 +134,7 @@ void connectWiFi() {
       retryCounter ++;
       if (retryCounter > retryLimit) {
         Serial << " not connected" << endl;
+        digitalWrite(LED_BUILTIN, LOW);
         Serial << "              restarting now and retrying in " << retryTimer << " sec" << endl;
         yield();
         ESP.deepSleep(retryTimer * 1000000);
@@ -130,6 +142,7 @@ void connectWiFi() {
       }
     }
     Serial << " connected" << endl;
+    digitalWrite(LED_BUILTIN, HIGH);
     Serial << "IP:           " << WiFi.localIP() << endl;
     Serial << "RSSI:         " << WiFi.RSSI() << endl;
   }
@@ -264,6 +277,9 @@ void publishMqtt(String value) {
 }
 
 void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  setLED();
+
   Serial.begin(115200);
   Serial.setDebugOutput(false);
   Wire.begin();
@@ -277,6 +293,7 @@ void setup() {
   setupWiFi(WIFI_MODE);
   #endif
   connectWiFi();
+  setLED();
 
   #ifndef DEEPSLEEP
   setupOTA();
@@ -290,6 +307,8 @@ void setup() {
 }
 
 void loop() {
+  setLED();
+
   if (WiFi.getMode() == WIFI_AP or wifiMulti.run() == WL_CONNECTED) {
     #ifndef DEEPSLEEP
     ArduinoOTA.handle();

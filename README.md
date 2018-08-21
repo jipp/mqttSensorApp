@@ -27,6 +27,7 @@ Running with Deep Sleep will configure WiFi as Client.
 - [X] webserver displaying current data
 - [X] OTA
 - [X] DeppSleep
+- [X] LED shows WiFi status
 
 ## needed libraries
  * Streaming
