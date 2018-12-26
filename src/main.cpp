@@ -126,6 +126,7 @@ void setupWiFi(WiFiMode_t mode) {
 
 void connectWiFi() {
   int retryCounter = 0;
+  
   if (WiFi.getMode() == WIFI_STA) {
     Serial << "WiFi:         connecting ";
     while (wifiMulti.run() != WL_CONNECTED) {
