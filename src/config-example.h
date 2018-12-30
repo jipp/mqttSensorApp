@@ -5,6 +5,8 @@
 #define VERSION "mqttSensorApp"
 #endif
 
+#define SWITCH_BUTTON 12
+
 //#define DEEPSLEEP 30
 
 #define WIFI_MODE WIFI_AP
