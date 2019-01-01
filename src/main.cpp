@@ -75,12 +75,12 @@ void setupSensors()
 void readSwitchStateEEPROM()
 {
   EEPROM.begin(512);
-  digitalWrite(SWITCH_BUTTON, EEPROM.read(address));
+  digitalWrite(SWITCH_PIN, EEPROM.read(address));
 }
 
 void writeSwitchStateEEPROM()
 {
-  EEPROM.write(address, digitalRead(SWITCH_BUTTON));
+  EEPROM.write(address, digitalRead(SWITCH_PIN));
   EEPROM.commit();
 }
 
@@ -272,9 +272,9 @@ void callback(char *topic, byte *payload, unsigned int length)
 
   if (timerSwitchValue < 2)
   {
-    if ((timerSwitchValue == 0 ? false : true) != digitalRead(SWITCH_BUTTON))
+    if ((timerSwitchValue == 0 ? false : true) != digitalRead(SWITCH_PIN))
     {
-      digitalWrite(SWITCH_BUTTON, !digitalRead(SWITCH_BUTTON));
+      digitalWrite(SWITCH_PIN, !digitalRead(SWITCH_PIN));
       writeSwitchStateEEPROM();
       Serial << "switch:                ";
       timerSwitchValue == 0 ? Serial << "off" << endl : Serial << "on" << endl;
@@ -282,7 +282,7 @@ void callback(char *topic, byte *payload, unsigned int length)
   }
   else
   {
-    digitalWrite(SWITCH_BUTTON, 1);
+    digitalWrite(SWITCH_PIN, 1);
     writeSwitchStateEEPROM();
     timerSwitchStart = millis();
     Serial << "switch:                on" << endl;
@@ -396,12 +396,12 @@ void publishMqtt(String value)
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(SWITCH_BUTTON, OUTPUT);
+  pinMode(SWITCH_PIN, OUTPUT);
   setLED();
 
   Serial.begin(115200);
   Serial.setDebugOutput(false);
-  Wire.begin();
+  Wire.begin(SDA_PIN, SCL_PIN);
 
   printVersion();
   setupSensors();
@@ -453,9 +453,9 @@ void loop()
   }
 
 #ifndef DEEPSLEEP
-  if (timerSwitchValue > 1 and digitalRead(SWITCH_BUTTON) == 1 and millis() - timerSwitchStart > timerSwitchValue)
+  if (timerSwitchValue > 1 and digitalRead(SWITCH_PIN) == 1 and millis() - timerSwitchStart > timerSwitchValue)
   {
-    digitalWrite(SWITCH_BUTTON, 0);
+    digitalWrite(SWITCH_PIN, 0);
     writeSwitchStateEEPROM();
     Serial << "switch:                off" << endl;
   }
