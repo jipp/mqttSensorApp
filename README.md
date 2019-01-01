@@ -43,3 +43,7 @@ Running with Deep Sleep will configure WiFi as Client.
  * pubsubclient
  * ArduinoJson
  * i2cSernsorLib
+
+## Wemos (d1_mini_pro) / Lolin shields default
+- i2c: SCL (D1), SDA (D2)
+- relay/switch (D1)
