@@ -20,12 +20,12 @@
 #define WIFI_MODE WIFI_STA
 
 const char* ssid_AP = "<wifi-ap>";
-const char* ssid_1 = "<wifi-ssid>";
-const char* password_1 = "<wifi-key>";
-const char* ssid_2 = "<wifi-ssid>";
-const char* password_2 = "<wifi-key>";
-const char* ssid_3 = "<wifi-ssid>";
-const char* password_3 = "<wifi-key>";
+const char* ssid_STA_1 = "<wifi-ssid>";
+const char* password_STA_1 = "<wifi-key>";
+const char* ssid_STA_2 = "<wifi-ssid>";
+const char* password_STA_2 = "<wifi-key>";
+const char* ssid_STA_3 = "<wifi-ssid>";
+const char* password_STA_3 = "<wifi-key>";
 const int retryLimit = 50;
 const int retryTimer = 30;
 
