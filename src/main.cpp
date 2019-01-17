@@ -72,10 +72,12 @@ void setupSensors()
   bme280.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
 }
 
-void readSwitchStateEEPROM()
+bool readSwitchStateEEPROM()
 {
   EEPROM.begin(512);
   digitalWrite(SWITCH_PIN, EEPROM.read(address));
+
+  return digitalRead(SWITCH_PIN);
 }
 
 void writeSwitchStateEEPROM()
@@ -89,6 +91,7 @@ String getValue()
   DynamicJsonBuffer jsonBuffer;
   JsonObject &jsonObject = jsonBuffer.createObject();
   JsonArray &vccJson = jsonObject.createNestedArray("vcc");
+  JsonArray &switchJson = jsonObject.createNestedArray("switch");
   JsonArray &illuminanceJson = jsonObject.createNestedArray("illuminance");
   JsonArray &temperatureJson = jsonObject.createNestedArray("temperature");
   JsonArray &humidityJson = jsonObject.createNestedArray("humidity");
@@ -100,6 +103,7 @@ String getValue()
     vcc.getValues();
     vccJson.add(vcc.get(Sensor::VOLTAGE_MEASUREMENT));
   }
+  switchJson.add(readSwitchStateEEPROM());
   if (bh1750.isAvailable)
   {
     bh1750.getValues();
