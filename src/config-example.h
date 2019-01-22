@@ -12,6 +12,10 @@
 // switch Pin
 #define SWITCH_PIN D3 // defaul for relay shield (D1)
 
+// sensor Pin
+#define SENSOR_PIN_1 D5
+#define SENSOR_PIN_2 D6
+
 // deepsleep setting
 // #define DEEPSLEEP 30
 

@@ -10,6 +10,7 @@
 #include <ArduinoOTA.h>
 #include <ESP8266WebServer.h>
 #include <PubSubClient.h>
+#include <Bounce2.h>
 #include <EEPROM.h>
 
 #include <i2cSensorLib.h>
@@ -31,6 +32,8 @@ unsigned long timerSwitchStart = 0;
 ESP8266WebServer server(80);
 ESP8266WiFiMulti wifiMulti;
 PubSubClient pubSubClient;
+Bounce sensorSwitch1 = Bounce();
+Bounce sensorSwitch2 = Bounce();
 WiFiClient wifiClient;
 
 char id[13];
@@ -96,6 +99,7 @@ String getValue()
   JsonArray &temperatureJson = jsonObject.createNestedArray("temperature");
   JsonArray &humidityJson = jsonObject.createNestedArray("humidity");
   JsonArray &pressureJson = jsonObject.createNestedArray("pressure");
+  JsonArray &sensorSwitchJson = jsonObject.createNestedArray("sensorSwitch");
   String jsonString;
 
   if (vcc.isAvailable)
@@ -104,6 +108,8 @@ String getValue()
     vccJson.add(vcc.get(Sensor::VOLTAGE_MEASUREMENT));
   }
   switchJson.add(readSwitchStateEEPROM());
+  sensorSwitchJson.add(digitalRead(SENSOR_PIN_1));
+  sensorSwitchJson.add(digitalRead(SENSOR_PIN_2));
   if (bh1750.isAvailable)
   {
     bh1750.getValues();
@@ -397,6 +403,24 @@ void publishMqtt(String value)
   }
 }
 
+void setupSensorSwitches()
+{
+  pinMode(SENSOR_PIN_1, INPUT_PULLUP);
+  sensorSwitch1.attach(SENSOR_PIN_1);
+  sensorSwitch1.interval(5);
+  pinMode(SENSOR_PIN_2, INPUT_PULLUP);
+  sensorSwitch2.attach(SENSOR_PIN_2);
+  sensorSwitch2.interval(5);
+}
+
+void updateSensorSwitches()
+{
+  sensorSwitch1.update();
+  sensorSwitch1.read();
+  sensorSwitch2.update();
+  sensorSwitch2.read();
+}
+
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -409,6 +433,7 @@ void setup()
 
   printVersion();
   setupSensors();
+  setupSensorSwitches();
   readSwitchStateEEPROM();
 
 #ifdef DEEPSLEEP
@@ -441,6 +466,7 @@ void loop()
     server.handleClient();
 #endif
     pubSubClient.loop();
+    updateSensorSwitches();
   }
 
   if (millis() - timerMeasureIntervallStart > timerMeasureIntervall * 1000)
