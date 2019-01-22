@@ -10,7 +10,7 @@
 #define SDA_PIN D2 // default for wemos
 
 // switch Pin
-#define SWITCH_PIN D3 // defaul for relay shield (D1)
+#define SWITCH_PIN D3 // D1 default for relay shield
 
 // sensor Pin
 #define SENSOR_PIN_1 D5
