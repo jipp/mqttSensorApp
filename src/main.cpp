@@ -94,11 +94,11 @@ String getValue()
   DynamicJsonBuffer jsonBuffer;
   JsonObject &jsonObject = jsonBuffer.createObject();
   JsonArray &vccJson = jsonObject.createNestedArray("vcc");
-  JsonArray &switchJson = jsonObject.createNestedArray("switch");
   JsonArray &illuminanceJson = jsonObject.createNestedArray("illuminance");
   JsonArray &temperatureJson = jsonObject.createNestedArray("temperature");
   JsonArray &humidityJson = jsonObject.createNestedArray("humidity");
   JsonArray &pressureJson = jsonObject.createNestedArray("pressure");
+  JsonArray &switchJson = jsonObject.createNestedArray("switch");
   JsonArray &sensorSwitchJson = jsonObject.createNestedArray("sensorSwitch");
   String jsonString;
 
