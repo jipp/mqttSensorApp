@@ -374,6 +374,8 @@ void connectMqtt()
 
 void publishMqtt(String value)
 {
+  int length;
+
   if (String(mqtt_server).length() != 0)
   {
     boolean published = false;
@@ -384,14 +386,27 @@ void publishMqtt(String value)
     if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED)
     {
       if (pubSubClient.connected())
-        published = pubSubClient.publish(mqttTopicPublish.c_str(), value.c_str());
+      {
+        length = strlen(value.c_str());
+        published = pubSubClient.beginPublish(mqttTopicPublish.c_str(), length, false);
+        if (published)
+          for (int i = 0; i < length; i++)
+            pubSubClient.write(value[i]);
+        pubSubClient.endPublish();
+      }
       else
       {
         Serial << "not connected" << endl;
         connectMqtt();
         Serial << "mqtt:                  ";
         Serial << "publishing ... ";
-        published = pubSubClient.publish(mqttTopicPublish.c_str(), value.c_str());
+
+        length = strlen(value.c_str());
+        published = pubSubClient.beginPublish(mqttTopicPublish.c_str(), length, false);
+        if (published)
+          for (int i = 0; i < length; i++)
+            pubSubClient.write(value[i]);
+        pubSubClient.endPublish();
       }
       if (published)
         Serial << "published" << endl;
