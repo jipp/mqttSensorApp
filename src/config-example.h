@@ -6,15 +6,15 @@
 #endif
 
 // i2c pins
-#define SCL_PIN D1 // default for wemos
-#define SDA_PIN D2 // default for wemos
+#define SCL_PIN D1 // D1 default for wemos
+#define SDA_PIN D2 // D2 default for wemos
 
 // switch Pin
-#define SWITCH_PIN D3 // D1 default for relay shield
+#define SWITCH_PIN D5 // D1 default for relay shield v1.0.0
 
 // sensor Pin
-#define SENSOR_PIN_1 D5
-#define SENSOR_PIN_2 D6
+#define SENSOR_PIN_1 D7
+#define SENSOR_PIN_2 D8
 
 // deepsleep setting
 // #define DEEPSLEEP 30
