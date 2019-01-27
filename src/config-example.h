@@ -23,6 +23,8 @@
 //#define WIFI_MODE WIFI_AP
 #define WIFI_MODE WIFI_STA
 
+const char *hostname = "<hostname>";
+
 const char *ssid_AP = "<wifi-ap>";
 
 const char *ssid_STA_1 = "<wifi-ssid>";

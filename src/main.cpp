@@ -149,6 +149,7 @@ void showValue(String value)
 void setupWiFi(WiFiMode_t mode)
 {
   Serial << "WiFi Mode:             ";
+  WiFi.hostname(hostname);
   if (mode == WIFI_AP)
   {
     WiFi.mode(mode);
