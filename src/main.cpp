@@ -6,13 +6,12 @@
 #include <ArduinoJson.h>
 #include <Wire.h>
 #include <ESP8266WiFi.h>
-#include <ESP8266WiFiMulti.h>
+#include <WiFiManager.h>
 #include <ArduinoOTA.h>
 #include <ESP8266WebServer.h>
 #include <PubSubClient.h>
 #include <Bounce2.h>
 #include <EEPROM.h>
-
 #include <i2cSensorLib.h>
 
 ADC_MODE(ADC_VCC);
@@ -30,7 +29,6 @@ unsigned long timerSwitchValue = 0;
 unsigned long timerSwitchStart = 0;
 
 ESP8266WebServer server(80);
-ESP8266WiFiMulti wifiMulti;
 PubSubClient pubSubClient;
 Bounce sensorSwitch1 = Bounce();
 Bounce sensorSwitch2 = Bounce();
@@ -40,54 +38,8 @@ char id[13];
 String mqttTopicPublish;
 String mqttTopicSubscribe;
 
-void setLED()
-{
-  if (WiFi.getMode() == WIFI_AP or wifiMulti.run() == WL_CONNECTED)
-    digitalWrite(LED_BUILTIN, HIGH);
-  else
-    digitalWrite(LED_BUILTIN, LOW);
-}
-
-void printVersion()
-{
-  Serial << endl
-         << endl
-         << "VERSION:               " << VERSION << endl
-         << endl;
-}
-
-void setupSensors()
-{
-  vcc.begin();
-  Serial << "vcc:                   ";
-  vcc.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
-  bh1750.begin();
-  Serial << "bh1750:                ";
-  bh1750.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
-  sht3x.begin();
-  Serial << "sht3x:                 ";
-  sht3x.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
-  bmp180.begin();
-  Serial << "bmp180:                ";
-  bmp180.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
-  bme280.begin();
-  Serial << "bme280:                ";
-  bme280.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
-}
-
-bool readSwitchStateEEPROM()
-{
-  EEPROM.begin(512);
-  digitalWrite(SWITCH_PIN, EEPROM.read(address));
-
-  return digitalRead(SWITCH_PIN);
-}
-
-void writeSwitchStateEEPROM()
-{
-  EEPROM.write(address, digitalRead(SWITCH_PIN));
-  EEPROM.commit();
-}
+bool readSwitchStateEEPROM();
+void writeSwitchStateEEPROM();
 
 String getValue()
 {
@@ -146,65 +98,22 @@ void showValue(String value)
   Serial << "value:                 " << value << endl;
 }
 
-void setupWiFi(WiFiMode_t mode)
-{
-  Serial << "WiFi Mode:             ";
-  WiFi.hostname(hostname);
-  if (mode == WIFI_AP)
-  {
-    WiFi.mode(mode);
-    WiFi.softAP(ssid_AP);
-    Serial << WiFi.getMode() << endl;
-    Serial << "IP:                             " << WiFi.softAPIP() << endl;
-  }
-  if (mode == WIFI_STA)
-  {
-    WiFi.mode(mode);
-    wifiMulti.addAP(ssid_STA_1, password_STA_1);
-    wifiMulti.addAP(ssid_STA_2, password_STA_2);
-    wifiMulti.addAP(ssid_STA_3, password_STA_3);
-    Serial << WiFi.getMode() << endl;
-    Serial << "hostname:              " << WiFi.hostname() << endl;
-  }
-}
-
-void connectWiFi()
-{
-  int retryCounter = 0;
-
-  if (WiFi.getMode() == WIFI_STA)
-  {
-    Serial << "WiFi:                  connecting ";
-    while (wifiMulti.run() != WL_CONNECTED)
-    {
-      Serial << ".";
-      delay(100);
-      retryCounter++;
-      if (retryCounter > retryLimit)
-      {
-        Serial << " not connected" << endl;
-        digitalWrite(LED_BUILTIN, LOW);
-        Serial << "              restarting now and retrying in " << retryTimer << " sec" << endl;
-        yield();
-        ESP.deepSleep(retryTimer * 1000000);
-        //        ESP.restart();
-      }
-    }
-    Serial << " connected" << endl;
-    digitalWrite(LED_BUILTIN, HIGH);
-    Serial << "IP:                    " << WiFi.localIP() << endl;
-    Serial << "RSSI:                  " << WiFi.RSSI() << endl;
-  }
-}
-
 void setupOTA()
 {
   Serial << "OTA:                   ";
-  if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED)
+  if (WiFi.status() == WL_CONNECTED)
   {
+    ArduinoOTA.setPasswordHash(otaPasswordHash);
 
     ArduinoOTA.onStart([]() {
-      Serial.println("Start");
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "sketch";
+      else
+        type = "filesystem";
+
+      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+      Serial.println("Start updating " + type);
     });
 
     ArduinoOTA.onEnd([]() {
@@ -213,8 +122,6 @@ void setupOTA()
 
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
       Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-      ;
-      Serial.println();
     });
 
     ArduinoOTA.onError([](ota_error_t error) {
@@ -241,7 +148,7 @@ void setupOTA()
 void setupWebServer()
 {
   Serial << "Web Server:            ";
-  if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED)
+  if (WiFi.status() == WL_CONNECTED)
   {
 
     server.onNotFound([]() {
@@ -265,7 +172,6 @@ void setupID()
   Serial << id << endl;
 }
 
-#ifndef DEEPSLEEP
 void callback(char *topic, byte *payload, unsigned int length)
 {
   char str[10];
@@ -299,7 +205,6 @@ void callback(char *topic, byte *payload, unsigned int length)
     Serial << "switch:                on" << endl;
   }
 }
-#endif
 
 void setupMqttTopic()
 {
@@ -324,9 +229,7 @@ void setupMqttServer()
     pubSubClient.setClient(wifiClient);
     pubSubClient.setServer(mqtt_server, String(mqtt_port).toInt());
 
-#ifndef DEEPSLEEP
     pubSubClient.setCallback(callback);
-#endif
   }
 }
 
@@ -337,7 +240,7 @@ void connectMqtt()
     Serial << "mqtt:                  ";
     Serial << "connecting ... ";
 
-    if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED)
+    if (WiFi.status() == WL_CONNECTED)
     {
       if (!pubSubClient.connected())
       {
@@ -384,7 +287,7 @@ void publishMqtt(String value)
     Serial << "mqtt:                  ";
     Serial << "publishing ... ";
 
-    if (WiFi.getMode() == WIFI_AP or WiFi.status() == WL_CONNECTED)
+    if (WiFi.status() == WL_CONNECTED)
     {
       if (pubSubClient.connected())
       {
@@ -419,16 +322,6 @@ void publishMqtt(String value)
   }
 }
 
-void setupSensorSwitches()
-{
-  pinMode(SENSOR_PIN_1, INPUT_PULLUP);
-  sensorSwitch1.attach(SENSOR_PIN_1);
-  sensorSwitch1.interval(5);
-  pinMode(SENSOR_PIN_2, INPUT_PULLUP);
-  sensorSwitch2.attach(SENSOR_PIN_2);
-  sensorSwitch2.interval(5);
-}
-
 void updateSensorSwitches()
 {
   sensorSwitch1.update();
@@ -437,33 +330,137 @@ void updateSensorSwitches()
   sensorSwitch2.read();
 }
 
-void setup()
+void setupHardware()
 {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(SWITCH_PIN, OUTPUT);
-  setLED();
-
-  Serial.begin(115200);
-  Serial.setDebugOutput(false);
+  pinMode(SENSOR_PIN_1, INPUT_PULLUP);
+  pinMode(SENSOR_PIN_2, INPUT_PULLUP);
+  digitalWrite(LED_BUILTIN, LOW);
   Wire.begin(SDA_PIN, SCL_PIN);
+}
 
+void setLED()
+{
+  if (WiFi.status() == WL_CONNECTED)
+    digitalWrite(LED_BUILTIN, HIGH);
+  else
+    digitalWrite(LED_BUILTIN, LOW);
+}
+
+void printVersion()
+{
+  Serial << endl
+         << endl
+         << "VERSION:               " << VERSION << endl
+         << endl;
+}
+
+void setupSensors()
+{
+  vcc.begin();
+  Serial << "vcc:                   ";
+  vcc.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
+  bh1750.begin();
+  Serial << "bh1750:                ";
+  bh1750.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
+  sht3x.begin();
+  Serial << "sht3x:                 ";
+  sht3x.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
+  bmp180.begin();
+  Serial << "bmp180:                ";
+  bmp180.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
+  bme280.begin();
+  Serial << "bme280:                ";
+  bme280.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
+}
+
+void setupSensorSwitches()
+{
+  sensorSwitch1.attach(SENSOR_PIN_1);
+  sensorSwitch1.interval(5);
+  sensorSwitch2.attach(SENSOR_PIN_2);
+  sensorSwitch2.interval(5);
+}
+
+bool readSwitchStateEEPROM()
+{
+  EEPROM.begin(512);
+  digitalWrite(SWITCH_PIN, EEPROM.read(address));
+  EEPROM.end();
+
+  return digitalRead(SWITCH_PIN);
+}
+
+void writeSwitchStateEEPROM()
+{
+  EEPROM.begin(512);
+  EEPROM.write(address, digitalRead(SWITCH_PIN));
+  EEPROM.end();
+}
+
+bool connectWiFi()
+{
+  int count = 0;
+
+  Serial << "WiFi:                  ";
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial << ".";
+    if (count++ > 20)
+    {
+      Serial << "NOK" << endl;
+      return false;
+    }
+  }
+
+  Serial << "OK" << endl;
+
+  return true;
+}
+
+void setupWiFi()
+{
+  WiFi.hostname(hostname);
+
+  WiFiManager wifiManager;
+  // wifiManager.resetSettings();
+  wifiManager.setTimeout(180);
+  if (!wifiManager.autoConnect("AutoConnectAP"))
+  {
+    Serial.println("failed to connect and hit timeout");
+    delay(3000);
+    ESP.reset();
+    delay(5000);
+  }
+}
+
+void printWiFi()
+{
+  Serial << "SSID:                  " << WiFi.SSID() << endl;
+  Serial << "RSSI:                  " << WiFi.RSSI() << endl;
+  Serial << "Hostname:              " << WiFi.hostname() << endl;
+  Serial << "IP:                    " << WiFi.localIP() << endl;
+}
+
+void setup()
+{
+  Serial.begin(115200);
+
+  setupWiFi();
+
+  setupHardware();
   printVersion();
   setupSensors();
   setupSensorSwitches();
-  readSwitchStateEEPROM();
+  printWiFi();
 
-#ifdef DEEPSLEEP
-  setupWiFi(WIFI_STA);
-#else
-  setupWiFi(WIFI_MODE);
-#endif
-  connectWiFi();
   setLED();
-
-#ifndef DEEPSLEEP
   setupOTA();
   setupWebServer();
-#endif
+
+  readSwitchStateEEPROM();
 
   setupID();
   setupMqttTopic();
@@ -475,12 +472,10 @@ void loop()
 {
   setLED();
 
-  if (WiFi.getMode() == WIFI_AP or wifiMulti.run() == WL_CONNECTED)
+  if (WiFi.status() == WL_CONNECTED)
   {
-#ifndef DEEPSLEEP
     ArduinoOTA.handle();
     server.handleClient();
-#endif
     pubSubClient.loop();
     updateSensorSwitches();
   }
@@ -491,19 +486,12 @@ void loop()
     value = getValue();
     showValue(value);
     publishMqtt(value);
-#ifdef DEEPSLEEP
-    Serial << "deepsleep:    " << DEEPSLEEP << " sec" << endl;
-    yield();
-    ESP.deepSleep(DEEPSLEEP * 1000000);
-#endif
   }
 
-#ifndef DEEPSLEEP
   if (timerSwitchValue > 1 and digitalRead(SWITCH_PIN) == 1 and millis() - timerSwitchStart > timerSwitchValue)
   {
     digitalWrite(SWITCH_PIN, 0);
     writeSwitchStateEEPROM();
     Serial << "switch:                off" << endl;
   }
-#endif
 }

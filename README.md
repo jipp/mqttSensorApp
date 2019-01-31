@@ -21,29 +21,25 @@ eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.
 - '1' switch 'on'
 - 'x' switch/keep for x milliseconds 'on' then 'off' (x > 1)
 
-## WiFi Mode
-- Access Point: WIFI_MODE WIFI_AP
-- Client: WIFI_MODE WIFI_STA
-
-## Deep Sleep mode
-Running with Deep Sleep will configure WiFi as Client.
-
 ## supported Features
 - [X] connect to WiFi
-- [X] act as AP for direct measurement
+- [X] secure WiFi
 - [X] publish values using mqtt
+- [ ] secure MQTT
 - [X] webserver displaying current data
 - [X] OTA
-- [X] DeepSleep
 - [X] LED shows WiFi status
 - [X] act as switch (on/off/count down off)
 
 ## needed libraries
- * Streaming
- * pubsubclient
+ * ArduinoStreaming
+ * PubSubClient
  * ArduinoJson
  * i2cSernsorLib
+ * Bounce2
+ * WifiManager
 
 ## Wemos (d1_mini_pro) / Lolin shields default
 - i2c: SCL (D1), SDA (D2)
-- relay/switch (D1)
+- switch (D5)
+- contact sensor (D6/D7)
