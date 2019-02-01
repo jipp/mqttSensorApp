@@ -24,7 +24,7 @@ BME280 bme280 = BME280();
 
 String value;
 unsigned long timerMeasureIntervallStart = 0;
-const int address = 0;
+const int addressSwitchState = 0;
 unsigned long timerSwitchValue = 0;
 unsigned long timerSwitchStart = 0;
 
@@ -38,8 +38,21 @@ char id[13];
 String mqttTopicPublish;
 String mqttTopicSubscribe;
 
-bool readSwitchStateEEPROM();
-void writeSwitchStateEEPROM();
+bool readSwitchStateEEPROM()
+{
+  EEPROM.begin(512);
+  digitalWrite(SWITCH_PIN, EEPROM.read(addressSwitchState));
+  EEPROM.end();
+
+  return digitalRead(SWITCH_PIN);
+}
+
+void writeSwitchStateEEPROM()
+{
+  EEPROM.begin(512);
+  EEPROM.write(addressSwitchState, digitalRead(SWITCH_PIN));
+  EEPROM.end();
+}
 
 String getValue()
 {
@@ -111,7 +124,6 @@ void setupOTA()
         type = "sketch";
       else
         type = "filesystem";
-
       // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
       Serial.println("Start updating " + type);
     });
@@ -383,22 +395,6 @@ void setupSensorSwitches()
   sensorSwitch2.interval(5);
 }
 
-bool readSwitchStateEEPROM()
-{
-  EEPROM.begin(512);
-  digitalWrite(SWITCH_PIN, EEPROM.read(address));
-  EEPROM.end();
-
-  return digitalRead(SWITCH_PIN);
-}
-
-void writeSwitchStateEEPROM()
-{
-  EEPROM.begin(512);
-  EEPROM.write(address, digitalRead(SWITCH_PIN));
-  EEPROM.end();
-}
-
 bool connectWiFi()
 {
   int count = 0;
@@ -422,9 +418,9 @@ bool connectWiFi()
 
 void setupWiFi()
 {
-  WiFi.hostname(hostname);
-
   WiFiManager wifiManager;
+
+  WiFi.hostname(hostname);
   // wifiManager.resetSettings();
   wifiManager.setTimeout(180);
   if (!wifiManager.autoConnect("AutoConnectAP"))
@@ -448,19 +444,19 @@ void setup()
 {
   Serial.begin(115200);
 
-  setupWiFi();
-
   setupHardware();
-  printVersion();
+  readSwitchStateEEPROM();
+  setupWiFi();
   setupSensors();
   setupSensorSwitches();
+
+  printVersion();
   printWiFi();
 
   setLED();
+
   setupOTA();
   setupWebServer();
-
-  readSwitchStateEEPROM();
 
   setupID();
   setupMqttTopic();
