@@ -1,6 +1,9 @@
 # mqttSensorApp
 Sensor App using mqtt as transport protocol based on ESP processor. The ESP8266 can be used as AP or Client.
 
+## WiFi configuraion
+In case no WiFi will connect an on-demand AP will be opened and can be used for configuring the WiFi credentials.
+
 ## topic structure
 - publish value: `<macAddress w/o ":">/value`
 - subscribe to togle switch: `<macAddress w/o ":">/switch`
@@ -22,21 +25,22 @@ eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.
 - 'x' switch/keep for x milliseconds 'on' then 'off' (x > 1)
 
 ## supported Features
-- [X] connect to WiFi
-- [X] secure WiFi
-- [X] publish values using mqtt
-- [ ] secure MQTT
-- [X] webserver displaying current data
-- [X] OTA
-- [X] LED shows WiFi status
+- [X] OTA updates secured with password hash
+- [X] WiFi configuration started when not connecting to WiFi (running AP running till timeout and restarting)
+- [X] secure WiFi password storage
+- [X] build-in LED shows WiFi status
+- [X] data handling: JSON
+- [X] data publishing: HTTP, MQTT
+- [ ] MQTT data transfer: TLS
 - [X] act as switch (on/off/count down off)
+- [X] two sensor connectors for on/off detection
 
 ## needed libraries
- * ArduinoStreaming
- * PubSubClient
  * ArduinoJson
- * i2cSernsorLib
+ * ArduinoStreaming
  * Bounce2
+ * i2cSernsorLib
+ * PubSubClient
  * WifiManager
 
 ## Wemos (d1_mini_pro) / Lolin shields default
