@@ -16,7 +16,7 @@
 #define SENSOR_PIN_1 D6
 #define SENSOR_PIN_2 D7
 
-// ota settings
+// ota settings: echo -n "<password>" | md5
 const char *otaPasswordHash = "<md5 hash for password>";
 
 // wifi settings
