@@ -17,7 +17,7 @@
 #define SENSOR_PIN_2 D7
 
 // ota settings
-const char *otaPasswordHash = "<hash>"; // md5 hash for passwrod
+const char *otaPasswordHash = "<md5 hash for password>";
 
 // wifi settings
 const char *hostname = "<hostname>";
