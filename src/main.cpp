@@ -33,10 +33,36 @@ PubSubClient pubSubClient;
 Bounce sensorSwitch1 = Bounce();
 Bounce sensorSwitch2 = Bounce();
 WiFiClient wifiClient;
+WiFiClientSecure wifiClientSecure;
 
 char id[13];
 String mqttTopicPublish;
 String mqttTopicSubscribe;
+
+bool verifyFingerprint()
+{
+  Serial << "Connect:               ";
+  if (wifiClientSecure.connect(mqtt_server, String(mqtt_port_secure).toInt()))
+    Serial << "OK" << endl;
+  else
+  {
+    Serial << "NOK" << endl;
+    delay(3000);
+    ESP.reset();
+    delay(5000);
+  }
+
+  Serial << "Check Fingerprint:     ";
+  if (wifiClientSecure.verify(mqtt_fingerprint, mqtt_server))
+    Serial << "OK" << endl;
+  else
+  {
+    Serial << "NOK" << endl;
+    delay(3000);
+    ESP.reset();
+    delay(5000);
+  }
+}
 
 bool readSwitchStateEEPROM()
 {
@@ -236,10 +262,22 @@ void setupMqttServer()
   if (String(mqtt_server).length() != 0)
   {
     Serial << "mqtt server:           " << mqtt_server << endl;
-    Serial << "mqtt port:             " << mqtt_port << endl;
+    if (mqtt_use_secure)
+      Serial << "mqtt secure port:      " << mqtt_port_secure << endl;
+    else
+      Serial << "mqtt port:             " << mqtt_port << endl;
 
-    pubSubClient.setClient(wifiClient);
-    pubSubClient.setServer(mqtt_server, String(mqtt_port).toInt());
+    if (mqtt_use_secure)
+    {
+      verifyFingerprint();
+      pubSubClient.setClient(wifiClientSecure);
+      pubSubClient.setServer(mqtt_server, String(mqtt_port_secure).toInt());
+    }
+    else
+    {
+      pubSubClient.setClient(wifiClient);
+      pubSubClient.setServer(mqtt_server, String(mqtt_port).toInt());
+    }
 
     pubSubClient.setCallback(callback);
   }
@@ -294,7 +332,7 @@ void publishMqtt(String value)
 
   if (String(mqtt_server).length() != 0)
   {
-    boolean published = false;
+    bool published = false;
 
     Serial << "mqtt:                  ";
     Serial << "publishing ... ";

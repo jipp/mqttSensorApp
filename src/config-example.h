@@ -16,21 +16,24 @@
 #define SENSOR_PIN_1 D6
 #define SENSOR_PIN_2 D7
 
-// ota settings: echo -n "<password>" | md5
-const char *otaPasswordHash = "<md5 hash for password>";
+// ota settings
+const char *otaPasswordHash PROGMEM = "<md5 hash for password>";
 
 // wifi settings
-const char *hostname = "<hostname>";
+const char *hostname PROGMEM = "<hostname>";
 
 // measurement intervall
 const unsigned long timerMeasureIntervall = 10;
 
 // mqtt settings
-const char *mqtt_server = "<mqtt-broker>";
-const char *mqtt_port = "<port>";
-const char *mqtt_username = "<mqtt-user>";
-const char *mqtt_password = "<mqtt-password>";
-const char *mqtt_value_prefix = "<mqtt-topic-value-prefix>";
-const char *mqtt_switch_prefix = "<mqtt-topic-switch-prefix>";
+const bool mqtt_use_secure = false;
+const char *mqtt_server PROGMEM = "<mqtt-broker>";
+const char *mqtt_port PROGMEM = "<port>";
+const char *mqtt_port_secure PROGMEM = "<secure port>";
+const char *mqtt_fingerprint PROGMEM = "<fingerprint>";
+const char *mqtt_username PROGMEM = "<mqtt-user>";
+const char *mqtt_password PROGMEM = "<mqtt-password>";
+const char *mqtt_value_prefix PROGMEM = "<mqtt-topic-value-prefix>";
+const char *mqtt_switch_prefix PROGMEM = "<mqtt-topic-switch-prefix>";
 
 #endif
