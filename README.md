@@ -31,8 +31,8 @@ eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.
 - [X] build-in LED shows WiFi status
 - [X] data handling: JSON
 - [X] data publishing: HTTP, MQTT
-- [X] MQTT data transfer: TLS
-- [X] act as switch (on/off/count down off)
+- [X] MQTT data transfer: plain or TLS
+- [X] act as switch (on/off/timed off - duration in ms)
 - [X] two sensor connectors for on/off detection
 
 ## needed libraries
@@ -49,5 +49,5 @@ eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.
 - contact sensor (D6/D7)
 
 ## get security parameter
- - md5 hash for ota: 'echo -n "<password>" | md5sum'
- - fingerprint: 'echo | openssl s_client -connect localhost:8883 | openssl x509 -fingerprint -noout'
+ - md5 hash for ota: `echo -n "<password>" | md5sum`
+ - fingerprint: `echo | openssl s_client -connect localhost:8883 | openssl x509 -fingerprint -noout`
