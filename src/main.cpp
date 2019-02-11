@@ -47,9 +47,7 @@ bool verifyFingerprint()
   else
   {
     Serial << "NOK" << endl;
-    delay(3000);
-    ESP.reset();
-    delay(5000);
+    return false;
   }
 
   Serial << "Check Fingerprint:     ";
@@ -58,10 +56,10 @@ bool verifyFingerprint()
   else
   {
     Serial << "NOK" << endl;
-    delay(3000);
-    ESP.reset();
-    delay(5000);
+    return false;
   }
+
+  return true;
 }
 
 bool readSwitchStateEEPROM()
@@ -269,7 +267,12 @@ void setupMqttServer()
 
     if (mqtt_use_secure)
     {
-      verifyFingerprint();
+      if (!verifyFingerprint())
+      {
+        delay(3000);
+        ESP.reset();
+        delay(5000);
+      }
       pubSubClient.setClient(wifiClientSecure);
       pubSubClient.setServer(mqtt_server, String(mqtt_port_secure).toInt());
     }
