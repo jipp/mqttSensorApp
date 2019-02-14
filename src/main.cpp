@@ -276,7 +276,7 @@ void setupMqttServer()
     {
       if (!verifyFingerprint())
       {
-        delay(12000);
+        delay(3000);
         ESP.reset();
         delay(5000);
       }
@@ -465,11 +465,12 @@ void setupWiFi()
 
   WiFi.hostname(hostname);
   // wifiManager.resetSettings();
-  wifiManager.setTimeout(180);
-  if (!wifiManager.autoConnect("AutoConnectAP"))
+  // wifiManager.setDebugOutput(false);
+  wifiManager.setConfigPortalTimeout(180);
+  if (!wifiManager.autoConnect(hostname))
   {
     Serial.println("failed to connect and hit timeout");
-    delay(12000);
+    delay(3000);
     ESP.reset();
     delay(5000);
   }
