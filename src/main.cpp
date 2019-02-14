@@ -41,25 +41,30 @@ String mqttTopicSubscribe;
 
 bool verifyFingerprint()
 {
-  Serial << "Connect:               ";
-  if (wifiClientSecure.connect(mqtt_server, String(mqtt_port_secure).toInt()))
-    Serial << "OK" << endl;
-  else
+  if (String(mqtt_server).length() != 0)
   {
-    Serial << "NOK" << endl;
-    return false;
+    Serial << "Connect:               ";
+    if (wifiClientSecure.connect(mqtt_server, String(mqtt_port_secure).toInt()))
+      Serial << "OK" << endl;
+    else
+    {
+      Serial << "NOK" << endl;
+      return false;
+    }
+
+    Serial << "Check Fingerprint:     ";
+    if (wifiClientSecure.verify(mqtt_fingerprint, mqtt_server))
+      Serial << "OK" << endl;
+    else
+    {
+      Serial << "NOK" << endl;
+      return false;
+    }
+
+    return true;
   }
 
-  Serial << "Check Fingerprint:     ";
-  if (wifiClientSecure.verify(mqtt_fingerprint, mqtt_server))
-    Serial << "OK" << endl;
-  else
-  {
-    Serial << "NOK" << endl;
-    return false;
-  }
-
-  return true;
+  return false;
 }
 
 bool readSwitchStateEEPROM()
@@ -83,12 +88,13 @@ String getValue()
   DynamicJsonBuffer jsonBuffer;
   JsonObject &jsonObject = jsonBuffer.createObject();
   JsonArray &vccJson = jsonObject.createNestedArray("vcc");
+  JsonArray &memoryJson = jsonObject.createNestedArray("memory");
+  JsonArray &switchJson = jsonObject.createNestedArray("switch");
+  JsonArray &sensorSwitchJson = jsonObject.createNestedArray("sensorSwitch");
   JsonArray &illuminanceJson = jsonObject.createNestedArray("illuminance");
   JsonArray &temperatureJson = jsonObject.createNestedArray("temperature");
   JsonArray &humidityJson = jsonObject.createNestedArray("humidity");
   JsonArray &pressureJson = jsonObject.createNestedArray("pressure");
-  JsonArray &switchJson = jsonObject.createNestedArray("switch");
-  JsonArray &sensorSwitchJson = jsonObject.createNestedArray("sensorSwitch");
   String jsonString;
 
   if (vcc.isAvailable)
@@ -96,6 +102,7 @@ String getValue()
     vcc.getValues();
     vccJson.add(vcc.get(Sensor::VOLTAGE_MEASUREMENT));
   }
+  memoryJson.add(ESP.getFreeHeap());
   switchJson.add(readSwitchStateEEPROM());
   sensorSwitchJson.add(digitalRead(SENSOR_PIN_1));
   sensorSwitchJson.add(digitalRead(SENSOR_PIN_2));
@@ -269,7 +276,7 @@ void setupMqttServer()
     {
       if (!verifyFingerprint())
       {
-        delay(3000);
+        delay(12000);
         ESP.reset();
         delay(5000);
       }
@@ -295,7 +302,7 @@ void connectMqtt()
 
     if (WiFi.status() == WL_CONNECTED)
     {
-      if (!pubSubClient.connected())
+      if (pubSubClient.state() != 0)
       {
         if ((String(mqtt_username).length() == 0) || (String(mqtt_password).length() == 0))
         {
@@ -307,7 +314,7 @@ void connectMqtt()
           Serial << "(with Authentication) ";
           pubSubClient.connect(id, String(mqtt_username).c_str(), String(mqtt_password).c_str());
         }
-        if (pubSubClient.connected())
+        if (pubSubClient.state() == 0)
         {
           Serial << "connected" << endl;
           Serial << "mqtt:                  " << mqttTopicSubscribe << " ";
@@ -320,6 +327,10 @@ void connectMqtt()
         {
           Serial << "not connected (rc=" << pubSubClient.state() << ")" << endl;
         }
+      }
+      else
+      {
+        Serial << "still connected" << endl;
       }
     }
     else
@@ -335,40 +346,31 @@ void publishMqtt(String value)
 
   if (String(mqtt_server).length() != 0)
   {
-    bool published = false;
-
     Serial << "mqtt:                  ";
     Serial << "publishing ... ";
 
+    WiFi.status();
+    yield();
+
     if (WiFi.status() == WL_CONNECTED)
     {
-      if (pubSubClient.connected())
+      if (pubSubClient.state() == 0)
       {
         length = strlen(value.c_str());
-        published = pubSubClient.beginPublish(mqttTopicPublish.c_str(), length, false);
-        if (published)
-          for (int i = 0; i < length; i++)
-            pubSubClient.write(value[i]);
+        if (pubSubClient.beginPublish(mqttTopicPublish.c_str(), length, false))
+        {
+            pubSubClient.print(value);
+            Serial << "published" << endl;
+        }
+        else
+          Serial << "not published (transmit error)" << endl;
         pubSubClient.endPublish();
       }
       else
       {
-        Serial << "not connected" << endl;
+        Serial << "not published (rc=" << pubSubClient.state() << ")" << endl;
         connectMqtt();
-        Serial << "mqtt:                  ";
-        Serial << "publishing ... ";
-
-        length = strlen(value.c_str());
-        published = pubSubClient.beginPublish(mqttTopicPublish.c_str(), length, false);
-        if (published)
-          for (int i = 0; i < length; i++)
-            pubSubClient.write(value[i]);
-        pubSubClient.endPublish();
       }
-      if (published)
-        Serial << "published" << endl;
-      else
-        Serial << "not published" << endl;
     }
     else
       Serial << "not published (no wifi)" << endl;
@@ -467,7 +469,7 @@ void setupWiFi()
   if (!wifiManager.autoConnect("AutoConnectAP"))
   {
     Serial.println("failed to connect and hit timeout");
-    delay(3000);
+    delay(12000);
     ESP.reset();
     delay(5000);
   }
@@ -508,13 +510,13 @@ void setup()
 void loop()
 {
   setLED();
+  pubSubClient.loop();
+  updateSensorSwitches();
 
   if (WiFi.status() == WL_CONNECTED)
   {
     ArduinoOTA.handle();
     server.handleClient();
-    pubSubClient.loop();
-    updateSensorSwitches();
   }
 
   if (millis() - timerMeasureIntervallStart > timerMeasureIntervall * 1000)
