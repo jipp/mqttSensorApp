@@ -131,7 +131,6 @@ String getValue()
     humidityJson.add(bme280.get(Sensor::HUMIDITY_MEASUREMENT));
   }
 
-  jsonString = "";
   jsonObject.printTo(jsonString);
 
   return jsonString;
@@ -199,7 +198,7 @@ void setupWebServer()
     });
 
     server.begin();
-    Serial << "started" << endl;
+    Serial << "started (Port: " << serverPort << ")" << endl;
   }
   else
     Serial << "not started" << endl;
@@ -213,90 +212,6 @@ void setupID()
   WiFi.macAddress(mac);
   sprintf(id, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
   Serial << id << endl;
-}
-
-void publishMqtt(String);
-
-void callback(char *topic, byte *payload, unsigned int length)
-{
-  char str[10];
-
-  Serial << topic << ":   ";
-  for (unsigned int i = 0; i < length; i++)
-  {
-    str[i] = (char)payload[i];
-    Serial << (char)payload[i];
-  }
-  str[length] = '\0';
-  Serial << endl;
-
-  timerSwitchValue = String(str).toInt();
-
-  if (timerSwitchValue < 2)
-  {
-    if ((timerSwitchValue == 0 ? false : true) != digitalRead(SWITCH_PIN))
-    {
-      digitalWrite(SWITCH_PIN, !digitalRead(SWITCH_PIN));
-      writeSwitchStateEEPROM();
-      Serial << "switch:                ";
-      timerSwitchValue == 0 ? Serial << "off" << endl : Serial << "on" << endl;
-    }
-  }
-  else
-  {
-    digitalWrite(SWITCH_PIN, 1);
-    writeSwitchStateEEPROM();
-    timerSwitchStart = millis();
-    Serial << "switch:                on" << endl;
-  }
-
-  value = getValue();
-  showValue(value);
-  publishMqtt(value);
-}
-
-void setupMqttTopic()
-{
-  if (String(mqtt_server).length() != 0)
-  {
-    Serial << "mqtt publish topic:    ";
-    mqttTopicPublish = id + String(mqtt_value_prefix);
-    Serial << mqttTopicPublish << endl;
-    Serial << "mqtt subcribe topic:   ";
-    mqttTopicSubscribe = id + String(mqtt_switch_prefix);
-    Serial << mqttTopicSubscribe << endl;
-  }
-}
-
-void setupMqttServer()
-{
-  if (String(mqtt_server).length() != 0)
-  {
-    Serial << "mqtt server:           " << mqtt_server << endl;
-    if (mqtt_use_secure)
-      Serial << "mqtt secure port:      " << mqtt_port_secure << endl;
-    else
-      Serial << "mqtt port:             " << mqtt_port << endl;
-
-    if (mqtt_use_secure)
-    {
-      if (!verifyFingerprint())
-      {
-        delay(3000);
-        ESP.reset();
-        delay(5000);
-      }
-      pubSubClient.setClient(wifiClientSecure);
-      pubSubClient.setServer(mqtt_server, String(mqtt_port_secure).toInt());
-    }
-    else
-    {
-      pubSubClient.setClient(wifiClient);
-      pubSubClient.setServer(mqtt_server, String(mqtt_port).toInt());
-    }
-
-    pubSubClient.setCallback(callback);
-  }
 }
 
 void connectMqtt()
@@ -377,6 +292,88 @@ void publishMqtt(String value)
     }
     else
       Serial << "not published (no wifi)" << endl;
+  }
+}
+
+void callback(char *topic, byte *payload, unsigned int length)
+{
+  char str[10];
+
+  Serial << topic << ":   ";
+  for (unsigned int i = 0; i < length; i++)
+  {
+    str[i] = (char)payload[i];
+    Serial << (char)payload[i];
+  }
+  str[length] = '\0';
+  Serial << endl;
+
+  timerSwitchValue = String(str).toInt();
+
+  if (timerSwitchValue < 2)
+  {
+    if ((timerSwitchValue == 0 ? false : true) != digitalRead(SWITCH_PIN))
+    {
+      digitalWrite(SWITCH_PIN, !digitalRead(SWITCH_PIN));
+      writeSwitchStateEEPROM();
+      Serial << "switch:                ";
+      timerSwitchValue == 0 ? Serial << "off" << endl : Serial << "on" << endl;
+    }
+  }
+  else
+  {
+    digitalWrite(SWITCH_PIN, 1);
+    writeSwitchStateEEPROM();
+    timerSwitchStart = millis();
+    Serial << "switch:                on" << endl;
+  }
+
+  value = getValue();
+  showValue(value);
+  publishMqtt(value);
+}
+
+void setupMqttTopic()
+{
+  if (String(mqtt_server).length() != 0)
+  {
+    Serial << "mqtt publish topic:    ";
+    mqttTopicPublish = id + String(mqtt_value_prefix);
+    Serial << mqttTopicPublish << endl;
+    Serial << "mqtt subcribe topic:   ";
+    mqttTopicSubscribe = id + String(mqtt_switch_prefix);
+    Serial << mqttTopicSubscribe << endl;
+  }
+}
+
+void setupMqttServer()
+{
+  if (String(mqtt_server).length() != 0)
+  {
+    Serial << "mqtt server:           " << mqtt_server << endl;
+    if (mqtt_use_secure)
+      Serial << "mqtt secure port:      " << mqtt_port_secure << endl;
+    else
+      Serial << "mqtt port:             " << mqtt_port << endl;
+
+    if (mqtt_use_secure)
+    {
+      if (!verifyFingerprint())
+      {
+        delay(3000);
+        ESP.reset();
+        delay(5000);
+      }
+      pubSubClient.setClient(wifiClientSecure);
+      pubSubClient.setServer(mqtt_server, String(mqtt_port_secure).toInt());
+    }
+    else
+    {
+      pubSubClient.setClient(wifiClient);
+      pubSubClient.setServer(mqtt_server, String(mqtt_port).toInt());
+    }
+
+    pubSubClient.setCallback(callback);
   }
 }
 
