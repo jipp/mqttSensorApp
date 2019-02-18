@@ -22,6 +22,9 @@ const char *otaPasswordHash PROGMEM = "<md5 hash for password>";
 // wifi settings
 const char *hostname PROGMEM = "<hostname>";
 
+// webserver port
+const int serverPort = 80;
+
 // measurement intervall
 const unsigned long timerMeasureIntervall = 10;
 

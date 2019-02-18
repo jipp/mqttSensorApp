@@ -28,7 +28,7 @@ const int addressSwitchState = 0;
 unsigned long timerSwitchValue = 0;
 unsigned long timerSwitchStart = 0;
 
-ESP8266WebServer server(80);
+ESP8266WebServer server(serverPort);
 PubSubClient pubSubClient;
 Bounce sensorSwitch1 = Bounce();
 Bounce sensorSwitch2 = Bounce();
@@ -215,6 +215,8 @@ void setupID()
   Serial << id << endl;
 }
 
+void publishMqtt(String);
+
 void callback(char *topic, byte *payload, unsigned int length)
 {
   char str[10];
@@ -247,6 +249,10 @@ void callback(char *topic, byte *payload, unsigned int length)
     timerSwitchStart = millis();
     Serial << "switch:                on" << endl;
   }
+
+  value = getValue();
+  showValue(value);
+  publishMqtt(value);
 }
 
 void setupMqttTopic()
@@ -348,9 +354,6 @@ void publishMqtt(String value)
   {
     Serial << "mqtt:                  ";
     Serial << "publishing ... ";
-
-    WiFi.status();
-    yield();
 
     if (WiFi.status() == WL_CONNECTED)
     {
@@ -533,5 +536,8 @@ void loop()
     digitalWrite(SWITCH_PIN, 0);
     writeSwitchStateEEPROM();
     Serial << "switch:                off" << endl;
+    value = getValue();
+    showValue(value);
+    publishMqtt(value);
   }
 }
