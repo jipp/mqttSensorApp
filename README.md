@@ -1,10 +1,16 @@
 # mqttSensorApp
-Sensor App using mqtt as transport protocol based on ESP processor. The ESP8266 can be used as AP or Client.
+This app is collecting data using different sensors or a pin and publish them using MQTT or on a web server. In addition two pins can be used as input.
 
-## WiFi configuraion
-In case no WiFi will connect an on-demand AP will be opened and can be used for configuring the WiFi credentials.
+## Configurataion
+Many configuration parameters can be changed in the `config.h` file.
 
-## topic structure
+### WiFi configuraion
+If it is not possible to connect to an existing WiFi network during boot an access point will be started to reconfigure the credentials. After a timeout a reboot will take place to try reconnecting with already stored credentials.
+
+### MQTT
+MQTT can be used either plain or over TLS. Server, port and other parameters can be configured manually using `config.h`.
+
+#### topic structure
 - publish value: `<macAddress w/o ":">/value`
 - subscribe to togle switch: `<macAddress w/o ":">/switch`
 
@@ -12,17 +18,20 @@ eg:
 - `5ccf7f3c88a2/value`
 - `5ccf7f3c88a2/switch`
 
-## value structure
+#### value structure
 In case you connect different sensors and multiple values are read for the same topic, they will be listed as csv.
 
 `{"vcc":[<value in volt>],"illuminance":[<value in lux>],"temperature":[<value in degrees celsius>],"humidity":[<value in %>],"pressure":[<value in hPa>]}`
 
 eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.56543],"pressure":[997.304]}`
 
-## switch structure
+#### switch structure
 - '0' switch 'off'
 - '1' switch 'on'
 - 'x' switch/keep for x milliseconds 'on' then 'off' (x > 1)
+
+### Web Server
+A http server is started on a configureable port. 
 
 ## supported Features
 - [X] OTA updates secured with password hash
@@ -31,12 +40,14 @@ eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.
 - [X] build-in LED shows WiFi status
 - [X] data handling: JSON
 - [X] data publishing: HTTP, MQTT
+- [X] configurable HTTP port
 - [X] MQTT data transfer: plain or TLS
 - [X] act as switch (on/off/timed off - duration in ms)
+- [ ] publish state change of switch immediately
 - [X] two sensor connectors for on/off detection
 - [ ] certificate validation
 
-## needed libraries
+## needed additional libraries
  * ArduinoJson
  * ArduinoStreaming
  * Bounce2
@@ -44,7 +55,7 @@ eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.
  * PubSubClient
  * WifiManager
 
-## Wemos (d1_mini_pro) / Lolin shields default
+## Wemos/Lolin (d1_mini_pro) shields default
 - i2c: SCL (D1), SDA (D2)
 - switch (D5)
 - contact sensor (D6/D7)
