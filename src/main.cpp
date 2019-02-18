@@ -359,8 +359,8 @@ void publishMqtt(String value)
         length = strlen(value.c_str());
         if (pubSubClient.beginPublish(mqttTopicPublish.c_str(), length, false))
         {
-            pubSubClient.print(value);
-            Serial << "published" << endl;
+          pubSubClient.print(value);
+          Serial << "published" << endl;
         }
         else
           Serial << "not published (transmit error)" << endl;
@@ -469,7 +469,7 @@ void setupWiFi()
   wifiManager.setConfigPortalTimeout(180);
   if (!wifiManager.autoConnect(hostname))
   {
-    Serial.println("failed to connect and hit timeout");
+    Serial << "failed to connect and hit timeout" << endl;
     delay(3000);
     ESP.reset();
     delay(5000);
