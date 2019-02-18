@@ -34,6 +34,7 @@ eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.
 - [X] MQTT data transfer: plain or TLS
 - [X] act as switch (on/off/timed off - duration in ms)
 - [X] two sensor connectors for on/off detection
+- [ ] certificate validation
 
 ## needed libraries
  * ArduinoJson
