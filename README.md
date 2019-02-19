@@ -43,9 +43,9 @@ A http server is started on a configureable port.
 - [X] configurable HTTP port
 - [X] MQTT data transfer: plain or TLS
 - [X] act as switch (on/off/timed off - duration in ms)
-- [ ] publish state change of switch immediately
+- [X] publish state change of switch immediately
 - [X] two sensor connectors for on/off detection
-- [ ] certificate validation
+- [ ] certificate validation (store public cert instead of fingerprint, maybe NTP needed separately)
 
 ## needed additional libraries
  * ArduinoJson
