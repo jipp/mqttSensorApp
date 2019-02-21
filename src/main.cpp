@@ -537,4 +537,6 @@ void loop()
     showValue(value);
     publishMqtt(value);
   }
+
+  yield();
 }

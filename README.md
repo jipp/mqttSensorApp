@@ -1,6 +1,9 @@
 # mqttSensorApp
 This app is collecting data using different sensors or a pin and publish them using MQTT or on a web server. In addition two pins can be used as input.
 
+## IDE
+PlatformIO
+
 ## Configurataion
 Many configuration parameters can be changed in the `config.h` file.
 
