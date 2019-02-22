@@ -10,4 +10,5 @@ install:
     - cmd: pip install -U platformio
 
 test_script:
-    - cmd: platformio ci --project-conf=platformio.ini
+    - cmd: cp src/config-example.h src/config.h
+    - cmd: platformio ci --project-conf=platformio.ini --lib="."
