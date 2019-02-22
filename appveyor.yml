@@ -10,6 +10,8 @@ install:
     - cmd: pip install -U platformio
 
 test_script:
-    - cmd: cp ../git_rev_macro.py .
+    - cmd: pwd
+    - cmd: ls -l
+    - cmd: ls -l ..
     - cmd: cp src/config-example.h src/config.h
     - cmd: platformio ci --project-conf=platformio.ini --lib="."
