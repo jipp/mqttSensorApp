@@ -14,6 +14,5 @@ install:
     - pip install -U platformio
 
 script:
-    - cp ../git_rev_macro.py .
     - cp src/config-example.h src/config.h
-    - platformio ci --project-conf=platformio.ini --lib="."
+    - platformio ci --project-conf="platformio.ini" --lib="." 
