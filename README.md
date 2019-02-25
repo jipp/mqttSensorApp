@@ -5,7 +5,7 @@ This app is collecting data using different sensors or a pin and publish them us
 PlatformIO
 
 ## Configurataion
-Many configuration parameters can be changed in the `config.h` file.
+Configuration parameters can be changed in the `config.h` file.
 
 ### WiFi configuraion
 If it is not possible to connect to an existing WiFi network during boot an access point will be started to reconfigure the credentials. After a timeout a reboot will take place to try reconnecting with already stored credentials.
@@ -48,7 +48,6 @@ A http server is started on a configureable port.
 - [X] act as switch (on/off/timed off - duration in ms)
 - [X] publish state change of switch immediately
 - [X] two sensor connectors for on/off detection
-- [ ] certificate validation (store public cert instead of fingerprint, maybe NTP needed separately)
 
 ## needed additional libraries
  * ArduinoJson
