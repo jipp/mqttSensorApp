@@ -1,5 +1,5 @@
 # mqttSensorApp
-This app is collecting data using different sensors or a pin and publish them using MQTT or on a web server. In addition two pins can be used as input.
+This app is collecting data using different sensors connected via I2C. In addition two pins are used as input switches. The data will be sent using MQTT to a broker and published on a web server running on the chip.
 
 ## IDE
 PlatformIO
