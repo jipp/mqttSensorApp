@@ -15,4 +15,4 @@ install:
 
 script:
     - cp src/config-example.h src/config.h
-    - platformio ci --project-conf="platformio.ini" --lib="." 
+    - platformio run
