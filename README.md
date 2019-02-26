@@ -1,5 +1,11 @@
-master branch: [![Build Status](https://travis-ci.org/jipp/mqttSensorApp.svg?branch=master)](https://travis-ci.org/jipp/mqttSensorApp)
-development branch: [![Build Status](https://travis-ci.org/jipp/mqttSensorApp.svg?branch=development)](https://travis-ci.org/jipp/mqttSensorApp)
+master branch: 
+[![Build Status](https://travis-ci.org/jipp/mqttSensorApp.svg?branch=master)](https://travis-ci.org/jipp/mqttSensorApp)
+[https://ci.appveyor.com/api/projects/status/g3msykeidxhic3y7/branch/master?svg=true](https://ci.appveyor.com/api/projects/status/g3msykeidxhic3y7/branch/master?svg=true)
+
+development branch:
+[![Build Status](https://travis-ci.org/jipp/mqttSensorApp.svg?branch=development)](https://ci.appveyor.com/project/jipp/mqttsensorapp)
+[https://ci.appveyor.com/api/projects/status/g3msykeidxhic3y7/branch/development?svg=true](https://ci.appveyor.com/project/jipp/mqttsensorapp)
+
 
 # mqttSensorApp
 This app is collecting data using different sensors connected via I2C. In addition two pins are used as input switches. The data will be sent using MQTT to a broker and published on a web server running on the chip.
