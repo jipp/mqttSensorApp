@@ -1,10 +1,11 @@
 master branch: 
 [![Build Status](https://travis-ci.org/jipp/mqttSensorApp.svg?branch=master)](https://travis-ci.org/jipp/mqttSensorApp)
-[https://ci.appveyor.com/api/projects/status/g3msykeidxhic3y7/branch/master?svg=true](https://ci.appveyor.com/api/projects/status/g3msykeidxhic3y7/branch/master?svg=true)
+[![Build status](https://ci.appveyor.com/api/projects/status/g3msykeidxhic3y7/branch/master?svg=true)](https://ci.appveyor.com/project/jipp/mqttsensorapp)
+
 
 development branch:
 [![Build Status](https://travis-ci.org/jipp/mqttSensorApp.svg?branch=development)](https://ci.appveyor.com/project/jipp/mqttsensorapp)
-[https://ci.appveyor.com/api/projects/status/g3msykeidxhic3y7/branch/development?svg=true](https://ci.appveyor.com/project/jipp/mqttsensorapp)
+[![Build status](https://ci.appveyor.com/api/projects/status/g3msykeidxhic3y7/branch/development?svg=true)](https://ci.appveyor.com/project/jipp/mqttsensorapp)
 
 
 # mqttSensorApp
