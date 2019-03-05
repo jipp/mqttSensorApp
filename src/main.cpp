@@ -360,6 +360,7 @@ void setupMqttServer()
     {
       if (!verifyFingerprint())
       {
+        Serial << "failed to verify fingerprint" << endl;
         delay(3000);
         ESP.reset();
         delay(5000);
