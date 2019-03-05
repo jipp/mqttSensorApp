@@ -67,7 +67,7 @@ bool verifyFingerprint()
   return false;
 }
 
-bool readSwitchStateEEPROM()
+int readSwitchStateEEPROM()
 {
   EEPROM.begin(512);
   digitalWrite(SWITCH_PIN, EEPROM.read(addressSwitchState));
