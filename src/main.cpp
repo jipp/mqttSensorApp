@@ -85,25 +85,21 @@ void writeSwitchStateEEPROM()
 
 String getValue()
 {
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject &jsonObject = jsonBuffer.createObject();
-  JsonArray &vccJson = jsonObject.createNestedArray("vcc");
-  JsonArray &memoryJson = jsonObject.createNestedArray("memory");
-  JsonArray &switchJson = jsonObject.createNestedArray("switch");
-  JsonArray &sensorSwitchJson = jsonObject.createNestedArray("sensorSwitch");
-  JsonArray &illuminanceJson = jsonObject.createNestedArray("illuminance");
-  JsonArray &temperatureJson = jsonObject.createNestedArray("temperature");
-  JsonArray &humidityJson = jsonObject.createNestedArray("humidity");
-  JsonArray &pressureJson = jsonObject.createNestedArray("pressure");
+  DynamicJsonDocument doc(1024);
+  JsonArray sensorSwitchJson = doc.createNestedArray("sensorSwitch");
+  JsonArray illuminanceJson = doc.createNestedArray("illuminance");
+  JsonArray temperatureJson = doc.createNestedArray("temperature");
+  JsonArray humidityJson = doc.createNestedArray("humidity");
+  JsonArray pressureJson = doc.createNestedArray("pressure");
   String jsonString;
 
   if (vcc.isAvailable)
   {
     vcc.getValues();
-    vccJson.add(vcc.get(Sensor::VOLTAGE_MEASUREMENT));
+    doc["vcc"] = vcc.get(Sensor::VOLTAGE_MEASUREMENT);
   }
-  memoryJson.add(ESP.getFreeHeap());
-  switchJson.add(readSwitchStateEEPROM());
+  doc["memory"] = ESP.getFreeHeap();
+  doc["switch"] = readSwitchStateEEPROM();
   sensorSwitchJson.add(digitalRead(SENSOR_PIN_1));
   sensorSwitchJson.add(digitalRead(SENSOR_PIN_2));
   if (bh1750.isAvailable)
@@ -131,7 +127,7 @@ String getValue()
     humidityJson.add(bme280.get(Sensor::HUMIDITY_MEASUREMENT));
   }
 
-  jsonObject.printTo(jsonString);
+  serializeJson(doc, jsonString);
 
   return jsonString;
 }
