@@ -33,8 +33,7 @@ PubSubClient pubSubClient;
 Bounce sensorSwitch1 = Bounce();
 Bounce sensorSwitch2 = Bounce();
 WiFiClient wifiClient;
-WiFiClientSecure wifiClientSecure;
-BearSSL::WiFiClientSecure wifiClientSecure_new;
+BearSSL::WiFiClientSecure wifiClientSecure;
 
 char id[13];
 String mqttTopicPublish;
@@ -44,38 +43,12 @@ bool verifyFingerprint()
 {
   if (String(mqtt_server).length() != 0)
   {
+    wifiClientSecure.setFingerprint(mqtt_fingerprint);
+
     Serial << "Connect:               ";
-    if (wifiClientSecure.connect(mqtt_server, String(mqtt_port_secure).toInt()))
-      Serial << "OK" << endl;
-    else
-    {
-      Serial << "NOK" << endl;
-      return false;
-    }
+    wifiClientSecure.connect(mqtt_server, String(mqtt_port_secure).toInt());
 
-    Serial << "Check Fingerprint:     ";
-    if (wifiClientSecure.verify(mqtt_fingerprint, mqtt_server))
-      Serial << "OK" << endl;
-    else
-    {
-      Serial << "NOK" << endl;
-      return false;
-    }
-
-    return true;
-  }
-
-  return false;
-}
-
-bool verifyFingerprint_new()
-{
-  if (String(mqtt_server).length() != 0)
-  {
-    wifiClientSecure_new.setFingerprint(mqtt_fingerprint_new);
-    Serial << "Connect:               ";
-    wifiClientSecure_new.connect(mqtt_server, String(mqtt_port_secure).toInt());
-    if (wifiClientSecure_new.connected())
+    if (wifiClientSecure.connected())
     {
       Serial << "OK" << endl;
       return true;
@@ -377,15 +350,14 @@ void setupMqttServer()
 
     if (mqtt_use_secure)
     {
-      if (!verifyFingerprint_new())
+      if (!verifyFingerprint())
       {
         Serial << "failed to verify fingerprint" << endl;
         delay(3000);
         ESP.reset();
         delay(5000);
       }
-      //pubSubClient.setClient(wifiClientSecure);
-      pubSubClient.setClient(wifiClientSecure_new);
+      pubSubClient.setClient(wifiClientSecure);
       pubSubClient.setServer(mqtt_server, String(mqtt_port_secure).toInt());
     }
     else
