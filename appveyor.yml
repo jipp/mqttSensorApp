@@ -11,4 +11,5 @@ install:
 
 test_script:
     - cmd: cp src/config-example.h src/config.h
+    - cmd: platformio update
     - cmd: platformio run
