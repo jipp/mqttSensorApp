@@ -17,26 +17,26 @@
 #define SENSOR_PIN_2 D7
 
 // ota settings
-const char *otaPasswordHash PROGMEM = "<md5 hash for password>";
+static const char *otaPasswordHash PROGMEM = "<md5 hash for password>";
 
 // wifi settings
-const char *hostname PROGMEM = "<hostname>";
+static const char *hostname PROGMEM = "<hostname>";
 
 // webserver port
-const int serverPort = 80;
+static const int serverPort = 80;
 
 // measurement intervall
-const unsigned long timerMeasureIntervall = 10;
+static const unsigned long timerMeasureIntervall = 10;
 
 // mqtt settings
-const bool mqtt_use_secure = false;
-const char *mqtt_server PROGMEM = "<mqtt-broker>";
-const char *mqtt_port PROGMEM = "<port>";
-const char *mqtt_port_secure PROGMEM = "<secure port>";
+static const bool mqtt_use_secure = false;
+static const char *mqtt_server PROGMEM = "<mqtt-broker>";
+static const char *mqtt_port PROGMEM = "<port>";
+static const char *mqtt_port_secure PROGMEM = "<secure port>";
 static const char mqtt_fingerprint[] PROGMEM = "<fingerprint>";
-const char *mqtt_username PROGMEM = "<mqtt-user>";
-const char *mqtt_password PROGMEM = "<mqtt-password>";
-const char *mqtt_value_prefix PROGMEM = "<mqtt-topic-value-prefix>";
-const char *mqtt_switch_prefix PROGMEM = "<mqtt-topic-switch-prefix>";
+static const char *mqtt_username PROGMEM = "<mqtt-user>";
+static const char *mqtt_password PROGMEM = "<mqtt-password>";
+static const char *mqtt_value_prefix PROGMEM = "<mqtt-topic-value-prefix>";
+static const char *mqtt_switch_prefix PROGMEM = "<mqtt-topic-switch-prefix>";
 
 #endif
