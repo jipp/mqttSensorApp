@@ -45,7 +45,7 @@ bool verifyHostname()
 
   if (String(mqtt_server).length() != 0)
   {
-    Serial << "Server name check:     ";
+    Serial << "server name check:     " << mqtt_server << " ";
     if (WiFi.hostByName(mqtt_server, result) == 1)
     {
       Serial << "OK" << endl;
@@ -67,7 +67,7 @@ bool verifyFingerprint()
   {
     wifiClientSecure.setFingerprint(mqtt_fingerprint);
 
-    Serial << "Connect:               ";
+    Serial << "connect:               ";
     wifiClientSecure.connect(mqtt_server, String(mqtt_port_secure).toInt());
 
     if (wifiClientSecure.connected())
@@ -362,9 +362,8 @@ void setupMqttTopic()
 
 void setupMqttServer()
 {
-  if (String(mqtt_server).length() != 0)
+  if (verifyHostname() == 1)
   {
-    Serial << "mqtt server:           " << mqtt_server << endl;
     if (mqtt_use_secure)
       Serial << "mqtt secure port:      " << mqtt_port_secure << endl;
     else
@@ -372,7 +371,7 @@ void setupMqttServer()
 
     if (mqtt_use_secure)
     {
-      if (!verifyHostname() and !verifyFingerprint())
+      if (!verifyFingerprint())
       {
         Serial << "failed to verify fingerprint" << endl;
         delay(3000);
@@ -389,6 +388,13 @@ void setupMqttServer()
     }
 
     pubSubClient.setCallback(callback);
+  }
+  else
+  {
+    Serial << "failed to verify hostname" << endl;
+    delay(3000);
+    ESP.reset();
+    delay(5000);
   }
 }
 
