@@ -39,13 +39,22 @@ char id[13];
 String mqttTopicPublish;
 String mqttTopicSubscribe;
 
+void reset()
+{
+  delay(3000);
+  ESP.reset();
+  delay(5000);
+}
+
 bool verifyHostname()
 {
   IPAddress result;
 
+  Serial << "server name check:     ";
+
   if (String(mqtt_server).length() != 0)
   {
-    Serial << "server name check:     " << mqtt_server << " ";
+    Serial << mqtt_server << " ";
     if (WiFi.hostByName(mqtt_server, result) == 1)
     {
       Serial << "OK" << endl;
@@ -57,6 +66,8 @@ bool verifyHostname()
       return false;
     }
   }
+
+  Serial << "not defined" << endl;
 
   return false;
 }
@@ -374,9 +385,7 @@ void setupMqttServer()
       if (!verifyFingerprint())
       {
         Serial << "failed to verify fingerprint" << endl;
-        delay(3000);
-        ESP.reset();
-        delay(5000);
+        reset();
       }
       pubSubClient.setClient(wifiClientSecure);
       pubSubClient.setServer(mqtt_server, String(mqtt_port_secure).toInt());
@@ -392,9 +401,7 @@ void setupMqttServer()
   else
   {
     Serial << "failed to verify hostname" << endl;
-    delay(3000);
-    ESP.reset();
-    delay(5000);
+    reset();
   }
 }
 
@@ -491,9 +498,7 @@ void setupWiFi()
   if (!wifiManager.autoConnect(hostname))
   {
     Serial << "failed to connect and hit timeout" << endl;
-    delay(3000);
-    ESP.reset();
-    delay(5000);
+    reset();
   }
 }
 
