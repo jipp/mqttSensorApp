@@ -24,7 +24,7 @@ BME280 bme280 = BME280();
 
 String value;
 unsigned long timerMeasureIntervallStart = 0;
-const int addressSwitchState = 0;
+static const int addressSwitchState = 0;
 unsigned long timerSwitchValue = 0;
 unsigned long timerSwitchStart = 0;
 
@@ -38,6 +38,28 @@ BearSSL::WiFiClientSecure wifiClientSecure;
 char id[13];
 String mqttTopicPublish;
 String mqttTopicSubscribe;
+
+bool verifyHostname()
+{
+  IPAddress result;
+
+  if (String(mqtt_server).length() != 0)
+  {
+    Serial << "Server name check:     ";
+    if (WiFi.hostByName(mqtt_server, result) == 1)
+    {
+      Serial << "OK" << endl;
+      return true;
+    }
+    else
+    {
+      Serial << "NOK" << endl;
+      return false;
+    }
+  }
+
+  return false;
+}
 
 bool verifyFingerprint()
 {
@@ -350,7 +372,7 @@ void setupMqttServer()
 
     if (mqtt_use_secure)
     {
-      if (!verifyFingerprint())
+      if (!verifyHostname() and !verifyFingerprint())
       {
         Serial << "failed to verify fingerprint" << endl;
         delay(3000);
