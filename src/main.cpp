@@ -50,11 +50,11 @@ bool verifyHostname()
 {
   IPAddress result;
 
-  Serial << "server name check:     ";
+  Serial << "server address check:  ";
 
   if (String(mqtt_server).length() != 0)
   {
-    Serial << mqtt_server << " ";
+    Serial << "(" << mqtt_server << ") ";
     if (WiFi.hostByName(mqtt_server, result) == 1)
     {
       Serial << "OK" << endl;
@@ -74,29 +74,24 @@ bool verifyHostname()
 
 bool verifyFingerprint()
 {
-  if (String(mqtt_server).length() != 0)
+  wifiClientSecure.setFingerprint(mqtt_fingerprint);
+
+  Serial << "TLS connect:           ";
+  wifiClientSecure.connect(mqtt_server, String(mqtt_port_secure).toInt());
+
+  if (wifiClientSecure.connected())
   {
-    wifiClientSecure.setFingerprint(mqtt_fingerprint);
-
-    Serial << "connect:               ";
-    wifiClientSecure.connect(mqtt_server, String(mqtt_port_secure).toInt());
-
-    if (wifiClientSecure.connected())
-    {
-      Serial << "OK" << endl;
-      return true;
-    }
-    else
-    {
-      Serial << "NOK" << endl;
-      return false;
-    }
+    Serial << "OK" << endl;
+    return true;
   }
-
-  return false;
+  else
+  {
+    Serial << "NOK" << endl;
+    return false;
+  }
 }
 
-int readSwitchStateEEPROM()
+int setSwitchStateFromEEPROM()
 {
   EEPROM.begin(512);
   digitalWrite(SWITCH_PIN, EEPROM.read(addressSwitchState));
@@ -105,7 +100,7 @@ int readSwitchStateEEPROM()
   return digitalRead(SWITCH_PIN);
 }
 
-void writeSwitchStateEEPROM()
+void writeSwitchStateToEEPROM()
 {
   EEPROM.begin(512);
   EEPROM.write(addressSwitchState, digitalRead(SWITCH_PIN));
@@ -128,7 +123,7 @@ String getValue()
     doc["vcc"] = vcc.get(Sensor::VOLTAGE_MEASUREMENT);
   }
   doc["memory"] = ESP.getFreeHeap();
-  doc["switch"] = readSwitchStateEEPROM();
+  doc["switch"] = setSwitchStateFromEEPROM();
   sensorSwitchJson.add(digitalRead(SENSOR_PIN_1));
   sensorSwitchJson.add(digitalRead(SENSOR_PIN_2));
   if (bh1750.isAvailable)
@@ -214,19 +209,19 @@ void setupOTA()
 
 void setupWebServer()
 {
-  Serial << "Web Server:            ";
+  Serial << "web server:            ";
+  Serial << "(port: " << serverPort << ") ";
   if (WiFi.status() == WL_CONNECTED)
   {
-
     server.onNotFound([]() {
       server.send(200, "application/json", value);
     });
 
     server.begin();
-    Serial << "started (Port: " << serverPort << ")" << endl;
+    Serial << "OK" << endl;
   }
   else
-    Serial << "not started" << endl;
+    Serial << "NOK" << endl;
 }
 
 void setupID()
@@ -241,48 +236,45 @@ void setupID()
 
 void connectMqtt()
 {
-  if (String(mqtt_server).length() != 0)
-  {
-    Serial << "mqtt:                  ";
-    Serial << "connecting ... ";
+  Serial << "mqtt:                  ";
+  Serial << "connecting ... ";
 
-    if (WiFi.status() == WL_CONNECTED)
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    if (pubSubClient.state() != 0)
     {
-      if (pubSubClient.state() != 0)
+      if ((String(mqtt_username).length() == 0) || (String(mqtt_password).length() == 0))
       {
-        if ((String(mqtt_username).length() == 0) || (String(mqtt_password).length() == 0))
-        {
-          Serial << "(without Authentication) ";
-          pubSubClient.connect(id);
-        }
-        else
-        {
-          Serial << "(with Authentication) ";
-          pubSubClient.connect(id, String(mqtt_username).c_str(), String(mqtt_password).c_str());
-        }
-        if (pubSubClient.state() == 0)
-        {
-          Serial << "connected" << endl;
-          Serial << "mqtt:                  " << mqttTopicSubscribe << " ";
-          if (pubSubClient.subscribe(String(mqttTopicSubscribe).c_str()))
-            Serial << "subscribed" << endl;
-          else
-            Serial << "not subscribed" << endl;
-        }
-        else
-        {
-          Serial << "not connected (rc=" << pubSubClient.state() << ")" << endl;
-        }
+        Serial << "(without Authentication) ";
+        pubSubClient.connect(id);
       }
       else
       {
-        Serial << "still connected" << endl;
+        Serial << "(with Authentication) ";
+        pubSubClient.connect(id, String(mqtt_username).c_str(), String(mqtt_password).c_str());
+      }
+      if (pubSubClient.state() == 0)
+      {
+        Serial << "connected" << endl;
+        Serial << "mqtt:                  " << mqttTopicSubscribe << " ";
+        if (pubSubClient.subscribe(String(mqttTopicSubscribe).c_str()))
+          Serial << "subscribed" << endl;
+        else
+          Serial << "not subscribed" << endl;
+      }
+      else
+      {
+        Serial << "not connected (rc=" << pubSubClient.state() << ")" << endl;
       }
     }
     else
     {
-      Serial << "not connected (no wifi)" << endl;
+      Serial << "still connected" << endl;
     }
+  }
+  else
+  {
+    Serial << "not connected (no wifi)" << endl;
   }
 }
 
@@ -290,34 +282,31 @@ void publishMqtt(String value)
 {
   int length;
 
-  if (String(mqtt_server).length() != 0)
-  {
-    Serial << "mqtt:                  ";
-    Serial << "publishing ... ";
+  Serial << "mqtt:                  ";
+  Serial << "publishing ... ";
 
-    if (WiFi.status() == WL_CONNECTED)
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    if (pubSubClient.state() == 0)
     {
-      if (pubSubClient.state() == 0)
+      length = strlen(value.c_str());
+      if (pubSubClient.beginPublish(mqttTopicPublish.c_str(), length, false))
       {
-        length = strlen(value.c_str());
-        if (pubSubClient.beginPublish(mqttTopicPublish.c_str(), length, false))
-        {
-          pubSubClient.print(value);
-          Serial << "published" << endl;
-        }
-        else
-          Serial << "not published (transmit error)" << endl;
-        pubSubClient.endPublish();
+        pubSubClient.print(value);
+        Serial << "published" << endl;
       }
       else
-      {
-        Serial << "not published (rc=" << pubSubClient.state() << ")" << endl;
-        connectMqtt();
-      }
+        Serial << "not published (transmit error)" << endl;
+      pubSubClient.endPublish();
     }
     else
-      Serial << "not published (no wifi)" << endl;
+    {
+      Serial << "not published (rc=" << pubSubClient.state() << ")" << endl;
+      connectMqtt();
+    }
   }
+  else
+    Serial << "not published (no wifi)" << endl;
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
@@ -340,7 +329,7 @@ void callback(char *topic, byte *payload, unsigned int length)
     if ((timerSwitchValue == 0 ? false : true) != digitalRead(SWITCH_PIN))
     {
       digitalWrite(SWITCH_PIN, !digitalRead(SWITCH_PIN));
-      writeSwitchStateEEPROM();
+      writeSwitchStateToEEPROM();
       Serial << "switch:                ";
       timerSwitchValue == 0 ? Serial << "off" << endl : Serial << "on" << endl;
     }
@@ -348,7 +337,7 @@ void callback(char *topic, byte *payload, unsigned int length)
   else
   {
     digitalWrite(SWITCH_PIN, 1);
-    writeSwitchStateEEPROM();
+    writeSwitchStateToEEPROM();
     timerSwitchStart = millis();
     Serial << "switch:                on" << endl;
   }
@@ -360,18 +349,15 @@ void callback(char *topic, byte *payload, unsigned int length)
 
 void setupMqttTopic()
 {
-  if (String(mqtt_server).length() != 0)
-  {
-    Serial << "mqtt publish topic:    ";
-    mqttTopicPublish = id + String(mqtt_value_prefix);
-    Serial << mqttTopicPublish << endl;
-    Serial << "mqtt subcribe topic:   ";
-    mqttTopicSubscribe = id + String(mqtt_switch_prefix);
-    Serial << mqttTopicSubscribe << endl;
-  }
+  Serial << "mqtt publish topic:    ";
+  mqttTopicPublish = id + String(mqtt_value_prefix);
+  Serial << mqttTopicPublish << endl;
+  Serial << "mqtt subcribe topic:   ";
+  mqttTopicSubscribe = id + String(mqtt_switch_prefix);
+  Serial << mqttTopicSubscribe << endl;
 }
 
-void setupMqttServer()
+void setupMqtt()
 {
   if (verifyHostname() == 1)
   {
@@ -423,7 +409,7 @@ void setupHardware()
   Wire.begin(SDA_PIN, SCL_PIN);
 }
 
-void setLED()
+void displayWiFiStatus()
 {
   if (WiFi.status() == WL_CONNECTED)
     digitalWrite(LED_BUILTIN, HIGH);
@@ -444,22 +430,23 @@ void setupSensors()
   vcc.begin();
   Serial << "vcc:                   ";
   vcc.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
+
   bh1750.begin();
   Serial << "bh1750:                ";
   bh1750.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
+
   sht3x.begin();
   Serial << "sht3x:                 ";
   sht3x.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
+
   bmp180.begin();
   Serial << "bmp180:                ";
   bmp180.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
+
   bme280.begin();
   Serial << "bme280:                ";
   bme280.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
-}
 
-void setupSensorSwitches()
-{
   sensorSwitch1.attach(SENSOR_PIN_1);
   sensorSwitch1.interval(5);
   sensorSwitch2.attach(SENSOR_PIN_2);
@@ -495,6 +482,7 @@ void setupWiFi()
   // wifiManager.resetSettings();
   // wifiManager.setDebugOutput(false);
   wifiManager.setConfigPortalTimeout(180);
+
   if (!wifiManager.autoConnect(hostname))
   {
     Serial << "failed to connect and hit timeout" << endl;
@@ -514,29 +502,28 @@ void setup()
 {
   Serial.begin(115200);
 
-  setupHardware();
-  readSwitchStateEEPROM();
-  setupWiFi();
-  setupSensors();
-  setupSensorSwitches();
-
   printVersion();
-  printWiFi();
 
-  setLED();
+  setupHardware();
+  setSwitchStateFromEEPROM();
+  setupWiFi();
+  printWiFi();
+  displayWiFiStatus();
+
+  setupSensors();
 
   setupOTA();
   setupWebServer();
 
   setupID();
   setupMqttTopic();
-  setupMqttServer();
+  setupMqtt();
   connectMqtt();
 }
 
 void loop()
 {
-  setLED();
+  displayWiFiStatus();
   pubSubClient.loop();
   updateSensorSwitches();
 
@@ -557,7 +544,7 @@ void loop()
   if (timerSwitchValue > 1 and digitalRead(SWITCH_PIN) == 1 and millis() - timerSwitchStart > timerSwitchValue)
   {
     digitalWrite(SWITCH_PIN, 0);
-    writeSwitchStateEEPROM();
+    writeSwitchStateToEEPROM();
     Serial << "switch:                off" << endl;
     value = getValue();
     showValue(value);
