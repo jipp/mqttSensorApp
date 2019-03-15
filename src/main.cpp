@@ -117,6 +117,8 @@ String getValue()
   JsonArray pressureJson = doc.createNestedArray("pressure");
   String jsonString;
 
+  doc["version"] = VERSION;
+  doc["hostname"] = WiFi.hostname();
   if (vcc.isAvailable)
   {
     vcc.getValues();
