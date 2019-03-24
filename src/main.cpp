@@ -123,7 +123,7 @@ String getValue()
   if (memory.isAvailable)
   {
     memory.getValues();
-    doc["memory"] == memory.get(Sensor::MEMORY_MEASUREMENT);
+    doc["memory"] = memory.get(Sensor::MEMORY_MEASUREMENT);
   }
   if (vcc.isAvailable)
   {
