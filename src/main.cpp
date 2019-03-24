@@ -16,6 +16,7 @@
 
 ADC_MODE(ADC_VCC);
 
+Memory memory = Memory();
 VCC vcc = VCC();
 BH1750 bh1750 = BH1750();
 SHT3X sht3x = SHT3X(0x45);
@@ -117,12 +118,18 @@ String getValue()
   JsonArray pressureJson = doc.createNestedArray("pressure");
   String jsonString;
 
+  doc["version"] = VERSION;
+  doc["hostname"] = WiFi.hostname();
+  if (memory.isAvailable)
+  {
+    memory.getValues();
+    doc["memory"] == memory.get(Sensor::MEMORY_MEASUREMENT);
+  }
   if (vcc.isAvailable)
   {
     vcc.getValues();
     doc["vcc"] = vcc.get(Sensor::VOLTAGE_MEASUREMENT);
   }
-  doc["memory"] = ESP.getFreeHeap();
   doc["switch"] = setSwitchStateFromEEPROM();
   sensorSwitchJson.add(digitalRead(SENSOR_PIN_1));
   sensorSwitchJson.add(digitalRead(SENSOR_PIN_2));
@@ -427,6 +434,10 @@ void printVersion()
 
 void setupSensors()
 {
+  memory.begin();
+  Serial << "memory:                ";
+  memory.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
+
   vcc.begin();
   Serial << "vcc:                   ";
   vcc.isAvailable ? Serial << "OK" << endl : Serial << "NOK" << endl;
