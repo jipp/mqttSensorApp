@@ -119,6 +119,7 @@ String getValue()
   String jsonString;
 
   doc["version"] = VERSION;
+  doc["millis"] = millis();
   doc["hostname"] = WiFi.hostname();
   if (memory.isAvailable)
   {
@@ -544,7 +545,7 @@ void loop()
     server.handleClient();
   }
 
-  if (millis() - timerMeasureIntervallStart > timerMeasureIntervall * 1000)
+  if (millis() - timerMeasureIntervallStart > timerMeasureIntervall * 1000UL)
   {
     timerMeasureIntervallStart = millis();
     value = getValue();
