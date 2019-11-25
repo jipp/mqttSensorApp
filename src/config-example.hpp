@@ -1,5 +1,5 @@
-#ifndef config_h
-#define config_h
+#ifndef CONFIG_HPP
+#define CONFIG_HPP
 
 #ifndef VERSION
 #define VERSION "mqttSensorApp"

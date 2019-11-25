@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#include "config.h"
+#include "config.hpp"
 
 #include <Streaming.h>
 #include <ArduinoJson.h>
