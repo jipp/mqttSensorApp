@@ -10,6 +10,6 @@ install:
     - cmd: pip install -U platformio
 
 test_script:
-    - cmd: cp src/config-example.h src/config.h
+    - cmd: cp src/config-example.hpp src/config.hpp
     - cmd: platformio update
     - cmd: platformio run
