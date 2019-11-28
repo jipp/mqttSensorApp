@@ -1,5 +1,6 @@
 #include <Arduino.h>
 
+#include <iostream>
 #include "config.hpp"
 
 #include <Streaming.h>
@@ -14,7 +15,7 @@
 #include <EEPROM.h>
 #include <i2cSensorLib.h>
 
-ADC_MODE(ADC_VCC);
+ADC_MODE(ADC_VCC)
 
 Memory memory = Memory();
 VCC vcc = VCC();
@@ -51,45 +52,15 @@ bool verifyHostname()
 {
   IPAddress result;
 
-  Serial << "server address check:  ";
-
-  if (String(mqtt_server).length() != 0)
-  {
-    Serial << "(" << mqtt_server << ") ";
-    if (WiFi.hostByName(mqtt_server, result) == 1)
-    {
-      Serial << "OK" << endl;
-      return true;
-    }
-    else
-    {
-      Serial << "NOK" << endl;
-      return false;
-    }
-  }
-
-  Serial << "not defined" << endl;
-
-  return false;
+  return (WiFi.hostByName(mqtt_server.c_str(), result) == 1);
 }
 
 bool verifyFingerprint()
 {
-  wifiClientSecure.setFingerprint(mqtt_fingerprint);
+  wifiClientSecure.setFingerprint(mqtt_fingerprint.c_str());
+  wifiClientSecure.connect(mqtt_server.c_str(), String(mqtt_port_secure).toInt());
 
-  Serial << "TLS connect:           ";
-  wifiClientSecure.connect(mqtt_server, String(mqtt_port_secure).toInt());
-
-  if (wifiClientSecure.connected())
-  {
-    Serial << "OK" << endl;
-    return true;
-  }
-  else
-  {
-    Serial << "NOK" << endl;
-    return false;
-  }
+  return (wifiClientSecure.connected());
 }
 
 int setSwitchStateFromEEPROM()
@@ -174,7 +145,7 @@ void setupOTA()
   Serial << "OTA:                   ";
   if (WiFi.status() == WL_CONNECTED)
   {
-    ArduinoOTA.setPasswordHash(otaPasswordHash);
+    ArduinoOTA.setPasswordHash(otaPasswordHash.c_str());
 
     ArduinoOTA.onStart([]() {
       String type;
@@ -217,8 +188,6 @@ void setupOTA()
 
 void setupWebServer()
 {
-  Serial << "web server:            ";
-  Serial << "(port: " << serverPort << ") ";
   if (WiFi.status() == WL_CONNECTED)
   {
     server.onNotFound([]() {
@@ -226,10 +195,7 @@ void setupWebServer()
     });
 
     server.begin();
-    Serial << "OK" << endl;
   }
-  else
-    Serial << "NOK" << endl;
 }
 
 void setupID()
@@ -251,7 +217,7 @@ void connectMqtt()
   {
     if (pubSubClient.state() != 0)
     {
-      if ((String(mqtt_username).length() == 0) || (String(mqtt_password).length() == 0))
+      if ((mqtt_username.length() == 0) || (mqtt_password.length() == 0))
       {
         Serial << "(without Authentication) ";
         pubSubClient.connect(id);
@@ -259,7 +225,7 @@ void connectMqtt()
       else
       {
         Serial << "(with Authentication) ";
-        pubSubClient.connect(id, String(mqtt_username).c_str(), String(mqtt_password).c_str());
+        pubSubClient.connect(id, mqtt_username.c_str(), mqtt_password.c_str());
       }
       if (pubSubClient.state() == 0)
       {
@@ -367,27 +333,17 @@ void setupMqttTopic()
 
 void setupMqtt()
 {
-  if (verifyHostname() == 1)
+  if (verifyHostname())
   {
-    if (mqtt_use_secure)
-      Serial << "mqtt secure port:      " << mqtt_port_secure << endl;
-    else
-      Serial << "mqtt port:             " << mqtt_port << endl;
-
-    if (mqtt_use_secure)
+    if (verifyFingerprint())
     {
-      if (!verifyFingerprint())
-      {
-        Serial << "failed to verify fingerprint" << endl;
-        reset();
-      }
       pubSubClient.setClient(wifiClientSecure);
-      pubSubClient.setServer(mqtt_server, String(mqtt_port_secure).toInt());
+      pubSubClient.setServer(mqtt_server.c_str(), mqtt_port_secure);
     }
     else
     {
       pubSubClient.setClient(wifiClient);
-      pubSubClient.setServer(mqtt_server, String(mqtt_port).toInt());
+      pubSubClient.setServer(mqtt_server.c_str(), mqtt_port);
     }
 
     pubSubClient.setCallback(callback);
@@ -419,10 +375,7 @@ void setupHardware()
 
 void displayWiFiStatus()
 {
-  if (WiFi.status() == WL_CONNECTED)
-    digitalWrite(LED_BUILTIN, HIGH);
-  else
-    digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(LED_BUILTIN, (WiFi.status() == WL_CONNECTED));
 }
 
 void printVersion()
@@ -465,49 +418,20 @@ void setupSensors()
   sensorSwitch2.interval(5);
 }
 
-bool connectWiFi()
-{
-  int count = 0;
-
-  Serial << "WiFi:                  ";
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial << ".";
-    if (count++ > 20)
-    {
-      Serial << "NOK" << endl;
-      return false;
-    }
-  }
-
-  Serial << "OK" << endl;
-
-  return true;
-}
-
 void setupWiFi()
 {
   WiFiManager wifiManager;
 
-  WiFi.hostname(hostname);
+  WiFi.hostname(hostname.c_str());
   // wifiManager.resetSettings();
   // wifiManager.setDebugOutput(false);
   wifiManager.setConfigPortalTimeout(180);
 
-  if (!wifiManager.autoConnect(hostname))
+  if (!wifiManager.autoConnect(hostname.c_str()))
   {
     Serial << "failed to connect and hit timeout" << endl;
     reset();
   }
-}
-
-void printWiFi()
-{
-  Serial << "SSID:                  " << WiFi.SSID() << endl;
-  Serial << "RSSI:                  " << WiFi.RSSI() << endl;
-  Serial << "Hostname:              " << WiFi.hostname() << endl;
-  Serial << "IP:                    " << WiFi.localIP() << endl;
 }
 
 void setup()
@@ -519,7 +443,6 @@ void setup()
   setupHardware();
   setSwitchStateFromEEPROM();
   setupWiFi();
-  printWiFi();
   displayWiFiStatus();
 
   setupSensors();
