@@ -24,7 +24,7 @@ SHT3X sht3x = SHT3X(0x45);
 BMP180 bmp180 = BMP180();
 BME280 bme280 = BME280();
 
-String value;
+std::string value;
 unsigned long timerMeasureIntervallStart = 0;
 static const int addressSwitchState = 0;
 unsigned long timerSwitchValue = 0;
@@ -79,7 +79,7 @@ void writeSwitchStateToEEPROM()
   EEPROM.end();
 }
 
-String getValue()
+std::string getValue()
 {
   DynamicJsonDocument doc(1024);
   JsonArray sensorSwitchJson = doc.createNestedArray("sensorSwitch");
@@ -132,12 +132,12 @@ String getValue()
 
   serializeJson(doc, jsonString);
 
-  return jsonString;
+  return std::string(jsonString.c_str());
 }
 
-void showValue(String value)
+void showValue(std::string value)
 {
-  Serial << "value:                 " << value << endl;
+  Serial << "value:                 " << value.c_str() << endl;
 }
 
 void setupOTA()
@@ -191,7 +191,7 @@ void setupWebServer()
   if (WiFi.status() == WL_CONNECTED)
   {
     server.onNotFound([]() {
-      server.send(200, "application/json", value);
+      server.send(200, "application/json", value.c_str());
     });
 
     server.begin();
@@ -252,7 +252,7 @@ void connectMqtt()
   }
 }
 
-void publishMqtt(String value)
+void publishMqtt(std::string value)
 {
   int length;
 
@@ -266,7 +266,7 @@ void publishMqtt(String value)
       length = strlen(value.c_str());
       if (pubSubClient.beginPublish(mqttTopicPublish.c_str(), length, false))
       {
-        pubSubClient.print(value);
+        pubSubClient.print(value.c_str());
         Serial << "published" << endl;
       }
       else
