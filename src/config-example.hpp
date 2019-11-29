@@ -6,37 +6,36 @@
 #endif
 
 // i2c pins
-#define SCL_PIN D1 // D1 default for wemos
-#define SDA_PIN D2 // D2 default for wemos
+static const uint8_t SCL_PIN = D1; // D1 default for wemos
+static const uint8_t SDA_PIN = D2; // D2 default for wemos
 
 // switch Pin
-#define SWITCH_PIN D5 // D1 default for relay shield v1.0.0
+static const uint8_t SWITCH_PIN = D5; // D1 default for relay shield v1.0.0
 
 // sensor Pin
-#define SENSOR_PIN_1 D6
-#define SENSOR_PIN_2 D7
+static const uint8_t SENSOR_PIN_1 = D6;
+static const uint8_t SENSOR_PIN_2 = D7;
 
 // ota settings
-static const char *otaPasswordHash PROGMEM = "<md5 hash for password>";
+static const std::string otaPasswordHash = "<md5 hash for password>";
 
 // wifi settings
-static const char *hostname PROGMEM = "<hostname>";
+static const std::string hostname = "<hostname>";
 
 // webserver port
 static const int serverPort = 80;
 
 // measurement intervall
-static const unsigned long timerMeasureIntervall = 10;
+static const uint32_t timerMeasureIntervall = 10;
 
 // mqtt settings
-static const bool mqtt_use_secure = false;
-static const char *mqtt_server PROGMEM = "<mqtt-broker>";
-static const char *mqtt_port PROGMEM = "<port>";
-static const char *mqtt_port_secure PROGMEM = "<secure port>";
-static const char mqtt_fingerprint[] PROGMEM = "<fingerprint>";
-static const char *mqtt_username PROGMEM = "<mqtt-user>";
-static const char *mqtt_password PROGMEM = "<mqtt-password>";
-static const char *mqtt_value_prefix PROGMEM = "<mqtt-topic-value-prefix>";
-static const char *mqtt_switch_prefix PROGMEM = "<mqtt-topic-switch-prefix>";
+static const std::string mqtt_server = "<mqtt-broker>";
+static const uint16_t mqtt_port PROGMEM = 1883;
+static const uint16_t mqtt_port_secure PROGMEM = 8883;
+static const std::string mqtt_fingerprint = "<fingerprint>";
+static const std::string mqtt_username = "<mqtt-user>";
+static const std::string mqtt_password =  "<mqtt-password>";
+static const std::string mqtt_value_prefix = "<mqtt-topic-value-prefix>";
+static const std::string mqtt_switch_prefix = "<mqtt-topic-switch-prefix>";
 
 #endif

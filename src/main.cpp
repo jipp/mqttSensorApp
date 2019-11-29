@@ -5,7 +5,6 @@
 #include <iostream>
 #include "config.hpp"
 
-#include <Streaming.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
 #include <ESP8266WiFi.h>
@@ -27,10 +26,10 @@ BMP180 bmp180 = BMP180();
 BME280 bme280 = BME280();
 
 std::string value;
-unsigned long timerMeasureIntervallStart = 0;
+uint32_t timerMeasureIntervallStart = 0;
 static const int addressSwitchState = 0;
-unsigned long timerSwitchValue = 0;
-unsigned long timerSwitchStart = 0;
+uint32_t timerSwitchValue = 0;
+uint32_t timerSwitchStart = 0;
 
 ESP8266WebServer webServer(serverPort);
 PubSubClient pubSubClient;
@@ -267,8 +266,7 @@ void publishMqtt(std::string value)
 {
   int length;
 
-  Serial << "mqtt:                  ";
-  Serial << "publishing ... ";
+  std::cout << "publishing ... ";
 
   if (WiFi.status() == WL_CONNECTED)
   {
@@ -278,34 +276,38 @@ void publishMqtt(std::string value)
       if (pubSubClient.beginPublish(mqttTopicPublish.c_str(), length, false))
       {
         pubSubClient.print(value.c_str());
-        Serial << "published" << endl;
+        std::cout << "published" << std::endl;
       }
       else
-        Serial << "not published (transmit error)" << endl;
+      {
+        std::cout << "not published (transmit error)" << std::endl;
+      }
       pubSubClient.endPublish();
     }
     else
     {
-      Serial << "not published (rc=" << pubSubClient.state() << ")" << endl;
+      std::cout << "not published (rc=" << pubSubClient.state() << ")" << std::endl;
       connectMqtt();
     }
   }
   else
-    Serial << "not published (no wifi)" << endl;
+  {
+    std::cout << "not published (no wifi)" << std::endl;
+  }
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
 {
   char str[10];
 
-  Serial << topic << ":   ";
+  std::cout << topic << ":   ";
   for (unsigned int i = 0; i < length; i++)
   {
     str[i] = (char)payload[i];
-    Serial << (char)payload[i];
+    std::cout << (char)payload[i];
   }
   str[length] = '\0';
-  Serial << endl;
+  std::cout << std::endl;
 
   timerSwitchValue = String(str).toInt();
 
@@ -315,8 +317,8 @@ void callback(char *topic, byte *payload, unsigned int length)
     {
       digitalWrite(SWITCH_PIN, !digitalRead(SWITCH_PIN));
       writeSwitchStateToEEPROM();
-      Serial << "switch:                ";
-      timerSwitchValue == 0 ? Serial << "off" << endl : Serial << "on" << endl;
+      std::cout << "switch:                ";
+      timerSwitchValue == 0 ? std::cout << "off" << std::endl : std::cout << "on" << std::endl;
     }
   }
   else
@@ -324,7 +326,7 @@ void callback(char *topic, byte *payload, unsigned int length)
     digitalWrite(SWITCH_PIN, 1);
     writeSwitchStateToEEPROM();
     timerSwitchStart = millis();
-    Serial << "switch:                on" << endl;
+    std::cout << "switch:                on" << std::endl;
   }
 
   value = getValue();
@@ -389,9 +391,9 @@ void displayWiFiStatus()
 void printVersion()
 {
   std::cout << std::endl
-         << std::endl
-         << "VERSION: " << VERSION << std::endl
-         << std::endl;
+            << std::endl
+            << "VERSION: " << VERSION << std::endl
+            << std::endl;
 }
 
 void setupSensors()
@@ -420,6 +422,13 @@ void setupSensors()
   sensorSwitch2.interval(5);
 }
 
+void publish()
+{
+  value = getValue();
+  showValue(value);
+  publishMqtt(value);
+}
+
 void setupWiFi()
 {
   WiFiManager wifiManager;
@@ -431,7 +440,7 @@ void setupWiFi()
 
   if (!wifiManager.autoConnect(hostname.c_str()))
   {
-    std::cout  << "failed to connect and hit timeout" << std::endl;
+    std::cout << "failed to connect and hit timeout" << std::endl;
     reset();
   }
 }
@@ -473,19 +482,15 @@ void loop()
   if (millis() - timerMeasureIntervallStart > timerMeasureIntervall * 1000UL)
   {
     timerMeasureIntervallStart = millis();
-    value = getValue();
-    showValue(value);
-    publishMqtt(value);
+    publish();
   }
 
   if (timerSwitchValue > 1 and digitalRead(SWITCH_PIN) == 1 and millis() - timerSwitchStart > timerSwitchValue)
   {
     digitalWrite(SWITCH_PIN, 0);
     writeSwitchStateToEEPROM();
-    Serial << "switch:                off" << endl;
-    value = getValue();
-    showValue(value);
-    publishMqtt(value);
+    std::cout << "switch:                off" << std::endl;
+    publish();
   }
 
   yield();
