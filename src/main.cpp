@@ -2,18 +2,20 @@
 
 #define ARDUINOJSON_ENABLE_STD_STRING 1
 
+
 #include <iostream>
-#include "config.hpp"
 
 #include <ArduinoJson.h>
-#include <Wire.h>
-#include <ESP8266WiFi.h>
-#include <WiFiManager.h>
 #include <ArduinoOTA.h>
-#include <ESP8266WebServer.h>
-#include <PubSubClient.h>
 #include <Bounce2.h>
 #include <EEPROM.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+#include <WiFiManager.h>
+#include <Wire.h>
+
+#include "config.hpp"
 #include <i2cSensorLib.h>
 
 ADC_MODE(ADC_VCC)
@@ -61,7 +63,7 @@ bool verifyFingerprint()
   wifiClientSecure.setFingerprint(mqtt_fingerprint.c_str());
   wifiClientSecure.connect(mqtt_server.c_str(), mqtt_port_secure);
 
-  return (wifiClientSecure.connected());
+  return (wifiClientSecure.connected() == 1);
 }
 
 int setSwitchStateFromEEPROM()
@@ -134,11 +136,6 @@ std::string getValue()
   serializeJson(doc, jsonString);
 
   return jsonString;
-}
-
-void showValue(std::string value)
-{
-  std::cout << "value:                 " << value << std::endl;
 }
 
 void setupOTA()
@@ -220,7 +217,6 @@ void setupID()
 
 void connectMqtt()
 {
-  std::cout << "mqtt:                  ";
   std::cout << "connecting ... ";
 
   if (WiFi.status() == WL_CONNECTED)
@@ -240,11 +236,11 @@ void connectMqtt()
       if (pubSubClient.state() == 0)
       {
         std::cout << "connected" << std::endl;
-        std::cout << "mqtt:                  " << mqttTopicSubscribe.c_str() << " ";
+        std::cout << mqttTopicSubscribe.c_str();
         if (pubSubClient.subscribe(mqttTopicSubscribe.c_str()))
-          std::cout << "subscribed" << std::endl;
+          std::cout << " subscribed" << std::endl;
         else
-          std::cout << "not subscribed" << std::endl;
+          std::cout << " not subscribed" << std::endl;
       }
       else
       {
@@ -262,10 +258,11 @@ void connectMqtt()
   }
 }
 
-void publishMqtt(std::string value)
+void publishMqtt(const std::string &value)
 {
   int length;
 
+  std::cout << mqttTopicPublish << " " << value << std::endl;
   std::cout << "publishing ... ";
 
   if (WiFi.status() == WL_CONNECTED)
@@ -330,7 +327,6 @@ void callback(char *topic, byte *payload, unsigned int length)
   }
 
   value = getValue();
-  showValue(value);
   publishMqtt(value);
 }
 
@@ -338,7 +334,6 @@ void setupMqttTopic()
 {
   mqttTopicPublish = id + mqtt_value_prefix;
   mqttTopicSubscribe = id + mqtt_switch_prefix;
-  std::cout << mqttTopicPublish << " " << mqttTopicSubscribe << std::endl;
 }
 
 void setupMqtt()
@@ -418,6 +413,7 @@ void setupSensors()
 
   sensorSwitch1.attach(SENSOR_PIN_1);
   sensorSwitch1.interval(5);
+
   sensorSwitch2.attach(SENSOR_PIN_2);
   sensorSwitch2.interval(5);
 }
@@ -425,7 +421,6 @@ void setupSensors()
 void publish()
 {
   value = getValue();
-  showValue(value);
   publishMqtt(value);
 }
 
