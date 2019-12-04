@@ -2,7 +2,6 @@
 
 #define ARDUINOJSON_ENABLE_STD_STRING 1
 
-
 #include <iostream>
 
 #include <ArduinoJson.h>
@@ -30,6 +29,7 @@ BME280 bme280 = BME280();
 std::string value;
 uint32_t timerMeasureIntervallStart = 0;
 static const int addressSwitchState = 0;
+static const int eepromAddress = 512;
 uint32_t timerSwitchValue = 0;
 uint32_t timerSwitchStart = 0;
 
@@ -68,7 +68,7 @@ bool verifyFingerprint()
 
 int setSwitchStateFromEEPROM()
 {
-  EEPROM.begin(512);
+  EEPROM.begin(eepromAddress);
   digitalWrite(SWITCH_PIN, EEPROM.read(addressSwitchState));
   EEPROM.end();
 
@@ -77,7 +77,7 @@ int setSwitchStateFromEEPROM()
 
 void writeSwitchStateToEEPROM()
 {
-  EEPROM.begin(512);
+  EEPROM.begin(eepromAddress);
   EEPROM.write(addressSwitchState, digitalRead(SWITCH_PIN));
   EEPROM.end();
 }
@@ -393,6 +393,8 @@ void printVersion()
 
 void setupSensors()
 {
+  const int debounceInterval = 5;
+
   memory.begin();
   memory.isAvailable ? std::cout << "memory " : std::cout << ". ";
 
@@ -412,10 +414,10 @@ void setupSensors()
   bme280.isAvailable ? std::cout << "bme280  " << std::endl : std::cout << "." << std::endl;
 
   sensorSwitch1.attach(SENSOR_PIN_1);
-  sensorSwitch1.interval(5);
+  sensorSwitch1.interval(debounceInterval);
 
   sensorSwitch2.attach(SENSOR_PIN_2);
-  sensorSwitch2.interval(5);
+  sensorSwitch2.interval(debounceInterval);
 }
 
 void publish()
@@ -426,12 +428,13 @@ void publish()
 
 void setupWiFi()
 {
+  const unsigned long timeout = 180;
   WiFiManager wifiManager;
 
   WiFi.hostname(hostname.c_str());
   // wifiManager.resetSettings();
   // wifiManager.setDebugOutput(false);
-  wifiManager.setConfigPortalTimeout(180);
+  wifiManager.setConfigPortalTimeout(timeout);
 
   if (!wifiManager.autoConnect(hostname.c_str()))
   {
@@ -474,7 +477,7 @@ void loop()
     webServer.handleClient();
   }
 
-  if (millis() - timerMeasureIntervallStart > timerMeasureIntervall * 1000UL)
+  if (millis() - timerMeasureIntervallStart > timerMeasureIntervall)
   {
     timerMeasureIntervallStart = millis();
     publish();

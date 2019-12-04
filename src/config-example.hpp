@@ -26,7 +26,7 @@ static const std::string hostname = "<hostname>";
 static const int serverPort = 80;
 
 // measurement intervall
-static const uint32_t timerMeasureIntervall = 10;
+static const uint32_t timerMeasureIntervall = 10000;
 
 // mqtt settings
 static const std::string mqtt_server = "<mqtt-broker>";
