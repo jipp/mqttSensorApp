@@ -15,7 +15,7 @@ This app is collecting data using different sensors connected via I2C. In additi
 PlatformIO
 
 ## Configurataion
-Configuration parameters can be changed in the `config.h` file.
+Configuration parameters can be changed in the `config.hpp` file.
 
 ### WiFi configuraion
 If it is not possible to connect to an existing WiFi network during boot an access point will be started to reconfigure the credentials. After a timeout a reboot will take place to try reconnecting with already stored credentials.
@@ -36,7 +36,7 @@ In case you connect different sensors and multiple values are read for the same 
 
 `{"vcc":[<value in volt>],"illuminance":[<value in lux>],"temperature":[<value in degrees celsius>],"humidity":[<value in %>],"pressure":[<value in hPa>]}`
 
-eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.56543],"pressure":[997.304]}`
+eg: `{"sensorSwitch":[1,1],"illuminance":[],"temperature":[23.78],"humidity":[74.28711],"pressure":[994.9861],"version":"v1.2.5-19-g4903c6d-dirty","millis":448196,"hostname":"trial-sensor","memory":4920,"vcc":3.017,"switch":0}`
 
 #### switch structure
 - '0' switch 'off'
@@ -61,7 +61,6 @@ A http server is started on a configureable port.
 
 ## needed additional libraries
  * ArduinoJson
- * ArduinoStreaming
  * Bounce2
  * i2cSernsorLib
  * PubSubClient
