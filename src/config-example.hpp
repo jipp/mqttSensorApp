@@ -26,16 +26,18 @@ static const std::string hostname = "<hostname>";
 static const int serverPort = 80;
 
 // measurement intervall
-static const uint32_t timerMeasureIntervall = 10000;
+static const uint32_t measureIntervall = 10;
 
 // mqtt settings
-static const std::string mqtt_server = "<mqtt-broker>";
-static const uint16_t mqtt_port PROGMEM = 1883;
+static const std::string mqttServer = "<mqtt-broker>";
+static const uint16_t mqttPort PROGMEM = 1883;
 static const uint16_t mqtt_port_secure PROGMEM = 8883;
 static const std::string mqtt_fingerprint = "<fingerprint>";
-static const std::string mqtt_username = "<mqtt-user>";
-static const std::string mqtt_password =  "<mqtt-password>";
-static const std::string mqtt_value_prefix = "<mqtt-topic-value-prefix>";
-static const std::string mqtt_switch_prefix = "<mqtt-topic-switch-prefix>";
+static const std::string mqttUsername = "<mqtt-user>";
+static const std::string mqttPassword =  "<mqtt-password>";
+static const std::string mqttValuePrefix = "<mqtt-topic-value-prefix>";
+static const std::string mqttSwitchPrefix = "<mqtt-topic-switch-prefix>";
+static const uint8_t mqttPublishQoS = 0;
+static const uint8_t mqttSubscribeQoS = 0;
 
 #endif

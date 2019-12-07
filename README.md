@@ -21,7 +21,7 @@ Configuration parameters can be changed in the `config.hpp` file.
 If it is not possible to connect to an existing WiFi network during boot an access point will be started to reconfigure the credentials. After a timeout a reboot will take place to try reconnecting with already stored credentials.
 
 ### MQTT
-MQTT can be used either plain or over TLS. Server, port and other parameters can be configured manually using `config.h`.
+MQTT can be used either plain or over TLS. Server, port and other parameters can be configured manually using `config.hpp`.
 
 #### topic structure
 - publish value: `<macAddress w/o ":">/value`
@@ -63,7 +63,6 @@ A http server is started on a configureable port.
  * ArduinoJson
  * Bounce2
  * i2cSernsorLib
- * PubSubClient
  * WifiManager
 
 ## Wemos/Lolin (d1_mini_pro) shields default

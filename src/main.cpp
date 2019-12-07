@@ -1,6 +1,8 @@
 #include <Arduino.h>
 
 #include <iostream>
+#include <sstream>
+#include <iomanip>
 
 #include <AsyncMqttClient.h>
 #include <ESP8266WiFi.h>
@@ -20,6 +22,9 @@ std::string ssid;
 AsyncMqttClient mqttClient;
 Ticker mqttReconnect;
 Ticker mqttPublish;
+std::string id;
+std::string mqttPublishTopic;
+std::string mqttSubscribeTopic;
 
 void wifiConnect()
 {
@@ -78,21 +83,17 @@ void getWiFi()
 
 void mqttPublishMessage()
 {
-  mqttClient.publish("test/lol", 0, true, "test 1");
-  std::cout << "Publishing at QoS 0" << std::endl;
-  uint16_t packetIdPub1 = mqttClient.publish("test/lol", 1, true, "test 2");
-  std::cout << "Publishing at QoS 1, packetId: " << packetIdPub1 << std::endl;
-  uint16_t packetIdPub2 = mqttClient.publish("test/lol", 2, true, "test 3");
-  std::cout << "Publishing at QoS 2, packetId: " << packetIdPub2 << std::endl;
+  uint16_t packetIdPub = mqttClient.publish(mqttPublishTopic.c_str(), mqttPublishQoS, true, "test");
+  std::cout << "Publishing at QoS " << unsigned(mqttPublishQoS) << ", packetId: " << packetIdPub << std::endl;
 }
 
 void onMqttConnect(bool sessionPresent)
 {
   std::cout << "Connected to MQTT." << std::endl;
   std::cout << "Session present: " << sessionPresent << std::endl;
-  uint16_t packetIdSub = mqttClient.subscribe("test/lol", 2);
-  std::cout << "Subscribing at QoS 2, packetId: " << packetIdSub << std::endl;
-  mqttPublish.attach(10, mqttPublishMessage);
+  uint16_t packetIdSub = mqttClient.subscribe(mqttSubscribeTopic.c_str(), mqttSubscribeQoS);
+  std::cout << "Subscribing at QoS " << unsigned(mqttSubscribeQoS) << ", packetId: " << packetIdSub << std::endl;
+  mqttPublish.attach(measureIntervall, mqttPublishMessage);
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
@@ -109,7 +110,7 @@ void onMqttSubscribe(uint16_t packetId, uint8_t qos)
 {
   std::cout << "Subscribe acknowledged." << std::endl;
   std::cout << "  packetId: " << packetId << std::endl;
-  std::cout << "  qos: " << qos << std::endl;
+  std::cout << "  qos: " << unsigned(qos) << std::endl;
 }
 
 void onMqttUnsubscribe(uint16_t packetId)
@@ -120,14 +121,18 @@ void onMqttUnsubscribe(uint16_t packetId)
 
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
+  std::string buffer;
+
   std::cout << "Publish received." << std::endl;
   std::cout << "  topic: " << topic << std::endl;
-  std::cout << "  qos: " << properties.qos << std::endl;
+  std::cout << "  qos: " << unsigned(properties.qos) << std::endl;
   std::cout << "  dup: " << properties.dup << std::endl;
   std::cout << "  retain: " << properties.retain << std::endl;
   std::cout << "  len: " << len << std::endl;
   std::cout << "  index: " << index << std::endl;
   std::cout << "  total: " << total << std::endl;
+  payload[len] = '\0';
+  std::cout << "  payload: " << payload << std::endl;
 }
 
 void onMqttPublish(uint16_t packetId)
@@ -148,6 +153,20 @@ void setup()
   DHCPTimeoutHandler = WiFi.onStationModeDHCPTimeout(onDHCPTimeout);
 
   // setup mqtt
+  byte mac[6];
+  std::ostringstream stringStream;
+  WiFi.macAddress(mac);
+  stringStream << std::hex << std::setw(2) << std::setfill('0') << (int)mac[0]
+               << std::hex << std::setw(2) << std::setfill('0') << (int)mac[1]
+               << std::hex << std::setw(2) << std::setfill('0') << (int)mac[2]
+               << std::hex << std::setw(2) << std::setfill('0') << (int)mac[3]
+               << std::hex << std::setw(2) << std::setfill('0') << (int)mac[4]
+               << std::hex << std::setw(2) << std::setfill('0') << (int)mac[5];
+  id = stringStream.str();
+  std::cout << "id: " << id << std::endl;
+  mqttPublishTopic = id + mqttValuePrefix;
+  mqttSubscribeTopic = id + mqttSwitchPrefix;
+
   mqttClient.onConnect(onMqttConnect);
   mqttClient.onDisconnect(onMqttDisconnect);
   mqttClient.setServer(mqttServer.c_str(), mqttPort);
