@@ -1,495 +1,167 @@
 #include <Arduino.h>
 
-#define ARDUINOJSON_ENABLE_STD_STRING 1
-
 #include <iostream>
+#include <wire.h>
 
-#include <ArduinoJson.h>
-#include <ArduinoOTA.h>
-#include <Bounce2.h>
-#include <EEPROM.h>
-#include <ESP8266WebServer.h>
+#include <AsyncMqttClient.h>
 #include <ESP8266WiFi.h>
-#include <PubSubClient.h>
+#include <Ticker.h>
 #include <WiFiManager.h>
-#include <Wire.h>
 
 #include "config.hpp"
-#include <i2cSensorLib.h>
 
-ADC_MODE(ADC_VCC)
+WiFiEventHandler connectedEventHandler;
+WiFiEventHandler disconnectedEventHandler;
+WiFiEventHandler gotIpEventHandler;
+WiFiEventHandler DHCPTimeoutHandler;
+Ticker wifiReconnect;
+std::string psk;
+std::string ssid;
 
-Memory memory = Memory();
-VCC vcc = VCC();
-BH1750 bh1750 = BH1750();
-SHT3X sht3x = SHT3X(0x45);
-BMP180 bmp180 = BMP180();
-BME280 bme280 = BME280();
+AsyncMqttClient mqttClient;
+Ticker mqttReconnect;
+Ticker mqttPulish;
 
-std::string value;
-uint32_t timerMeasureIntervallStart = 0;
-static const int addressSwitchState = 0;
-static const int eepromAddress = 512;
-uint32_t timerSwitchValue = 0;
-uint32_t timerSwitchStart = 0;
-
-ESP8266WebServer webServer(serverPort);
-PubSubClient pubSubClient;
-Bounce sensorSwitch1 = Bounce();
-Bounce sensorSwitch2 = Bounce();
-WiFiClient wifiClient;
-BearSSL::WiFiClientSecure wifiClientSecure;
-
-std::string id;
-std::string mqttTopicPublish;
-std::string mqttTopicSubscribe;
-
-void reset()
+void wifiConnect()
 {
-  delay(3000);
-  ESP.reset();
-  delay(5000);
+  std::cout << "Connecting to Wi-Fi...";
+  WiFi.begin(ssid.c_str(), psk.c_str());
 }
 
-bool verifyHostname()
+void connectToMqtt()
 {
-  IPAddress result;
-
-  return (WiFi.hostByName(mqtt_server.c_str(), result) == 1);
+  std::cout << "Connecting to MQTT..." << std::endl;
+  mqttClient.connect();
 }
 
-bool verifyFingerprint()
+void onConnected(const WiFiEventStationModeConnected &event)
 {
-  wifiClientSecure.setFingerprint(mqtt_fingerprint.c_str());
-  wifiClientSecure.connect(mqtt_server.c_str(), mqtt_port_secure);
-
-  return (wifiClientSecure.connected() == 1);
+  std::cout << "Connected to Wi-Fi." << std::endl;
 }
 
-int setSwitchStateFromEEPROM()
+void onDisconnected(const WiFiEventStationModeDisconnected &event)
 {
-  EEPROM.begin(eepromAddress);
-  digitalWrite(SWITCH_PIN, EEPROM.read(addressSwitchState));
-  EEPROM.end();
-
-  return digitalRead(SWITCH_PIN);
+  std::cout << "Disconnected from Wi-Fi." << std::endl;
+  mqttReconnect.detach();
+  wifiReconnect.once(2, wifiConnect);
 }
 
-void writeSwitchStateToEEPROM()
+void onGotIp(const WiFiEventStationModeGotIP &event)
 {
-  EEPROM.begin(eepromAddress);
-  EEPROM.write(addressSwitchState, digitalRead(SWITCH_PIN));
-  EEPROM.end();
+  std::cout << "Got IP: " << std::string(WiFi.localIP().toString().c_str()) << std::endl;
+  connectToMqtt();
 }
 
-std::string getValue()
+void onDHCPTimeout()
 {
-  DynamicJsonDocument doc(1024);
-  JsonArray sensorSwitchJson = doc.createNestedArray("sensorSwitch");
-  JsonArray illuminanceJson = doc.createNestedArray("illuminance");
-  JsonArray temperatureJson = doc.createNestedArray("temperature");
-  JsonArray humidityJson = doc.createNestedArray("humidity");
-  JsonArray pressureJson = doc.createNestedArray("pressure");
-  std::string jsonString;
-
-  doc["version"] = VERSION;
-  doc["millis"] = millis();
-  doc["hostname"] = WiFi.hostname();
-  if (memory.isAvailable)
-  {
-    memory.getValues();
-    doc["memory"] = memory.get(Sensor::MEMORY_MEASUREMENT);
-  }
-  if (vcc.isAvailable)
-  {
-    vcc.getValues();
-    doc["vcc"] = vcc.get(Sensor::VOLTAGE_MEASUREMENT);
-  }
-  doc["switch"] = setSwitchStateFromEEPROM();
-  sensorSwitchJson.add(digitalRead(SENSOR_PIN_1));
-  sensorSwitchJson.add(digitalRead(SENSOR_PIN_2));
-  if (bh1750.isAvailable)
-  {
-    bh1750.getValues();
-    illuminanceJson.add(bh1750.get(Sensor::ILLUMINANCE_MEASUREMENT));
-  }
-  if (sht3x.isAvailable)
-  {
-    sht3x.getValues();
-    temperatureJson.add(sht3x.get(Sensor::TEMPERATURE_MEASUREMENT));
-    humidityJson.add(sht3x.get(Sensor::HUMIDITY_MEASUREMENT));
-  }
-  if (bmp180.isAvailable)
-  {
-    bmp180.getValues();
-    temperatureJson.add(bmp180.get(Sensor::TEMPERATURE_MEASUREMENT));
-    pressureJson.add(bmp180.get(Sensor::PRESSURE_MEASUREMENT));
-  }
-  if (bme280.isAvailable)
-  {
-    bme280.getValues();
-    temperatureJson.add(bme280.get(Sensor::TEMPERATURE_MEASUREMENT));
-    pressureJson.add(bme280.get(Sensor::PRESSURE_MEASUREMENT));
-    humidityJson.add(bme280.get(Sensor::HUMIDITY_MEASUREMENT));
-  }
-
-  serializeJson(doc, jsonString);
-
-  return jsonString;
+  std::cout << "DHCP Timeout." << std::endl;
 }
 
-void setupOTA()
-{
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    ArduinoOTA.setPasswordHash(otaPasswordHash.c_str());
-
-    ArduinoOTA.onStart([]() {
-      std::string type;
-      if (ArduinoOTA.getCommand() == U_FLASH)
-        type = "sketch";
-      else
-        type = "filesystem";
-      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      std::cout << "Start updating " + type << std::endl;
-    });
-
-    ArduinoOTA.onEnd([]() {
-      std::cout << "\nEnd" << std::endl;
-    });
-
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-      //Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-      std::cout << "Progress: " << (int)(progress / (total / 100)) << "%" << std::endl;
-    });
-
-    ArduinoOTA.onError([](ota_error_t error) {
-      //Serial.printf("Error[%u]: ", error);
-      std::cout << "Error[" << error << "]: " << error << std::endl;
-
-      switch (error)
-      {
-      case OTA_AUTH_ERROR:
-        std::cout << "Auth Failed" << std::endl;
-        break;
-      case OTA_BEGIN_ERROR:
-        std::cout << "Begin Failed" << std::endl;
-        break;
-      case OTA_CONNECT_ERROR:
-        std::cout << "Connect Failed" << std::endl;
-        break;
-      case OTA_RECEIVE_ERROR:
-        std::cout << "Receive Failed" << std::endl;
-        break;
-      case OTA_END_ERROR:
-        std::cout << "End Failed" << std::endl;
-        break;
-      default:
-        std::cout << "not identified" << std::endl;
-      }
-    });
-
-    ArduinoOTA.begin();
-  }
-}
-
-void setupWebServer()
-{
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    webServer.onNotFound([]() {
-      webServer.send(200, "application/json", value.c_str());
-    });
-
-    webServer.begin();
-  }
-}
-
-void setupID()
-{
-  byte mac[6];
-  char buffer[13];
-
-  WiFi.macAddress(mac);
-  sprintf(buffer, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  id = std::string(buffer);
-}
-
-void connectMqtt()
-{
-  std::cout << "connecting ... ";
-
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    if (pubSubClient.state() != 0)
-    {
-      if ((mqtt_username.length() == 0) || (mqtt_password.length() == 0))
-      {
-        std::cout << "(without Authentication) ";
-        pubSubClient.connect(id.c_str());
-      }
-      else
-      {
-        std::cout << "(with Authentication) ";
-        pubSubClient.connect(id.c_str(), mqtt_username.c_str(), mqtt_password.c_str());
-      }
-      if (pubSubClient.state() == 0)
-      {
-        std::cout << "connected" << std::endl;
-        std::cout << mqttTopicSubscribe.c_str();
-        if (pubSubClient.subscribe(mqttTopicSubscribe.c_str()))
-          std::cout << " subscribed" << std::endl;
-        else
-          std::cout << " not subscribed" << std::endl;
-      }
-      else
-      {
-        std::cout << "not connected (rc=" << pubSubClient.state() << ")" << std::endl;
-      }
-    }
-    else
-    {
-      std::cout << "still connected" << std::endl;
-    }
-  }
-  else
-  {
-    std::cout << "not connected (no wifi)" << std::endl;
-  }
-}
-
-void publishMqtt(const std::string &value)
-{
-  int length;
-
-  std::cout << mqttTopicPublish << " " << value << std::endl;
-  std::cout << "publishing ... ";
-
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    if (pubSubClient.state() == 0)
-    {
-      length = strlen(value.c_str());
-      if (pubSubClient.beginPublish(mqttTopicPublish.c_str(), length, false))
-      {
-        pubSubClient.print(value.c_str());
-        std::cout << "published" << std::endl;
-      }
-      else
-      {
-        std::cout << "not published (transmit error)" << std::endl;
-      }
-      pubSubClient.endPublish();
-    }
-    else
-    {
-      std::cout << "not published (rc=" << pubSubClient.state() << ")" << std::endl;
-      connectMqtt();
-    }
-  }
-  else
-  {
-    std::cout << "not published (no wifi)" << std::endl;
-  }
-}
-
-void callback(char *topic, byte *payload, unsigned int length)
-{
-  char str[10];
-
-  std::cout << topic << ":   ";
-  for (unsigned int i = 0; i < length; i++)
-  {
-    str[i] = (char)payload[i];
-    std::cout << (char)payload[i];
-  }
-  str[length] = '\0';
-  std::cout << std::endl;
-
-  timerSwitchValue = String(str).toInt();
-
-  if (timerSwitchValue < 2)
-  {
-    if ((timerSwitchValue == 0 ? false : true) != digitalRead(SWITCH_PIN))
-    {
-      digitalWrite(SWITCH_PIN, !digitalRead(SWITCH_PIN));
-      writeSwitchStateToEEPROM();
-      std::cout << "switch:                ";
-      timerSwitchValue == 0 ? std::cout << "off" << std::endl : std::cout << "on" << std::endl;
-    }
-  }
-  else
-  {
-    digitalWrite(SWITCH_PIN, 1);
-    writeSwitchStateToEEPROM();
-    timerSwitchStart = millis();
-    std::cout << "switch:                on" << std::endl;
-  }
-
-  value = getValue();
-  publishMqtt(value);
-}
-
-void setupMqttTopic()
-{
-  mqttTopicPublish = id + mqtt_value_prefix;
-  mqttTopicSubscribe = id + mqtt_switch_prefix;
-}
-
-void setupMqtt()
-{
-  if (verifyHostname())
-  {
-    if (verifyFingerprint())
-    {
-      pubSubClient.setClient(wifiClientSecure);
-      pubSubClient.setServer(mqtt_server.c_str(), mqtt_port_secure);
-    }
-    else
-    {
-      pubSubClient.setClient(wifiClient);
-      pubSubClient.setServer(mqtt_server.c_str(), mqtt_port);
-    }
-
-    pubSubClient.setCallback(callback);
-  }
-  else
-  {
-    std::cout << "failed to verify hostname" << std::endl;
-    reset();
-  }
-}
-
-void updateSensorSwitches()
-{
-  sensorSwitch1.update();
-  sensorSwitch1.read();
-  sensorSwitch2.update();
-  sensorSwitch2.read();
-}
-
-void setupHardware()
-{
-  pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(SWITCH_PIN, OUTPUT);
-  pinMode(SENSOR_PIN_1, INPUT_PULLUP);
-  pinMode(SENSOR_PIN_2, INPUT_PULLUP);
-  digitalWrite(LED_BUILTIN, LOW);
-  Wire.begin(SDA_PIN, SCL_PIN);
-}
-
-void displayWiFiStatus()
-{
-  digitalWrite(LED_BUILTIN, (WiFi.status() == WL_CONNECTED));
-}
-
-void printVersion()
-{
-  std::cout << std::endl
-            << std::endl
-            << "VERSION: " << VERSION << std::endl
-            << std::endl;
-}
-
-void setupSensors()
-{
-  const int debounceInterval = 5;
-
-  memory.begin();
-  memory.isAvailable ? std::cout << "memory " : std::cout << ". ";
-
-  vcc.begin();
-  vcc.isAvailable ? std::cout << "vcc " : std::cout << ". ";
-
-  bh1750.begin();
-  bh1750.isAvailable ? std::cout << "bh1750 " : std::cout << ". ";
-
-  sht3x.begin();
-  sht3x.isAvailable ? std::cout << "sht3x " : std::cout << ". ";
-
-  bmp180.begin();
-  bmp180.isAvailable ? std::cout << "bmp180 " : std::cout << ". ";
-
-  bme280.begin();
-  bme280.isAvailable ? std::cout << "bme280  " << std::endl : std::cout << "." << std::endl;
-
-  sensorSwitch1.attach(SENSOR_PIN_1);
-  sensorSwitch1.interval(debounceInterval);
-
-  sensorSwitch2.attach(SENSOR_PIN_2);
-  sensorSwitch2.interval(debounceInterval);
-}
-
-void publish()
-{
-  value = getValue();
-  publishMqtt(value);
-}
-
-void setupWiFi()
+void getWiFi()
 {
   const unsigned long timeout = 180;
   WiFiManager wifiManager;
 
   WiFi.hostname(hostname.c_str());
   // wifiManager.resetSettings();
-  // wifiManager.setDebugOutput(false);
+  wifiManager.setDebugOutput(false);
   wifiManager.setConfigPortalTimeout(timeout);
 
   if (!wifiManager.autoConnect(hostname.c_str()))
   {
     std::cout << "failed to connect and hit timeout" << std::endl;
-    reset();
   }
+
+  psk = std::string(WiFi.psk().c_str());
+  ssid = std::string(WiFi.SSID().c_str());
+}
+
+void mqttPublishMessage()
+{
+  mqttClient.publish("test/lol", 0, true, "test 1");
+  std::cout << "Publishing at QoS 0" << std::endl;
+  uint16_t packetIdPub1 = mqttClient.publish("test/lol", 1, true, "test 2");
+  std::cout << "Publishing at QoS 1, packetId: " << packetIdPub1 << std::endl;
+  uint16_t packetIdPub2 = mqttClient.publish("test/lol", 2, true, "test 3");
+  std::cout << "Publishing at QoS 2, packetId: " << packetIdPub2 << std::endl;
+}
+
+void onMqttConnect(bool sessionPresent)
+{
+  std::cout << "Connected to MQTT." << std::endl;
+  std::cout << "Session present: " << sessionPresent << std::endl;
+  uint16_t packetIdSub = mqttClient.subscribe("test/lol", 2);
+  std::cout << "Subscribing at QoS 2, packetId: " << packetIdSub << std::endl;
+  mqttPulish.attach(10, mqttPublishMessage);
+}
+
+void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
+{
+  std::cout << "Disconnected from MQTT." << std::endl;
+
+  if (WiFi.isConnected())
+  {
+    mqttPulish.detach();
+    mqttReconnect.once(2, connectToMqtt);
+  }
+}
+
+void onMqttSubscribe(uint16_t packetId, uint8_t qos)
+{
+  std::cout << "Subscribe acknowledged." << std::endl;
+  std::cout << "  packetId: " << packetId << std::endl;
+  std::cout << "  qos: " << qos << std::endl;
+}
+
+void onMqttUnsubscribe(uint16_t packetId)
+{
+  std::cout << "Unsubscribe acknowledged." << std::endl;
+  std::cout << "  packetId: " << packetId << std::endl;
+}
+
+void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
+{
+  std::cout << "Publish received." << std::endl;
+  std::cout << "  topic: " << topic << std::endl;
+  std::cout << "  qos: " << properties.qos << std::endl;
+  std::cout << "  dup: " << properties.dup << std::endl;
+  std::cout << "  retain: " << properties.retain << std::endl;
+  std::cout << "  len: " << len << std::endl;
+  std::cout << "  index: " << index << std::endl;
+  std::cout << "  total: " << total << std::endl;
+}
+
+void onMqttPublish(uint16_t packetId)
+{
+  std::cout << "Publish acknowledged." << std::endl;
+  std::cout << "  packetId: " << packetId << std::endl;
 }
 
 void setup()
 {
-  Serial.begin(115200);
+  // general setup
+  Serial.begin(460800);
 
-  printVersion();
+  // setup WiFi
+  connectedEventHandler = WiFi.onStationModeConnected(onConnected);
+  disconnectedEventHandler = WiFi.onStationModeDisconnected(onDisconnected);
+  gotIpEventHandler = WiFi.onStationModeGotIP(onGotIp);
+  DHCPTimeoutHandler = WiFi.onStationModeDHCPTimeout(onDHCPTimeout);
 
-  setupHardware();
-  setSwitchStateFromEEPROM();
-  setupWiFi();
-  displayWiFiStatus();
+  // setup mqtt
+  mqttClient.onConnect(onMqttConnect);
+  mqttClient.onDisconnect(onMqttDisconnect);
+  mqttClient.setServer(mqttServer.c_str(), mqttPort);
+  mqttClient.setCredentials(mqttUsername.c_str(), mqttPassword.c_str());
+  mqttClient.onSubscribe(onMqttSubscribe);
+  mqttClient.onUnsubscribe(onMqttUnsubscribe);
+  mqttClient.onMessage(onMqttMessage);
+  mqttClient.onPublish(onMqttPublish);
 
-  setupSensors();
-
-  setupOTA();
-  setupWebServer();
-
-  setupID();
-  setupMqttTopic();
-  setupMqtt();
-  connectMqtt();
+  // start
+  getWiFi();
 }
 
 void loop()
 {
-  displayWiFiStatus();
-  pubSubClient.loop();
-  updateSensorSwitches();
-
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    ArduinoOTA.handle();
-    webServer.handleClient();
-  }
-
-  if (millis() - timerMeasureIntervallStart > timerMeasureIntervall)
-  {
-    timerMeasureIntervallStart = millis();
-    publish();
-  }
-
-  if (timerSwitchValue > 1 and digitalRead(SWITCH_PIN) == 1 and millis() - timerSwitchStart > timerSwitchValue)
-  {
-    digitalWrite(SWITCH_PIN, 0);
-    writeSwitchStateToEEPROM();
-    std::cout << "switch:                off" << std::endl;
-    publish();
-  }
-
-  yield();
 }
