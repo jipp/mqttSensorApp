@@ -47,23 +47,26 @@ eg: `{"sensorSwitch":[1,1],"illuminance":[],"temperature":[23.78],"humidity":[74
 A http server is started on a configureable port. 
 
 ## supported Features
-- [X] OTA updates secured with password hash
 - [X] WiFi configuration started when not connecting to WiFi (running AP running till timeout and restarting)
-- [X] secure WiFi password storage
 - [X] build-in LED shows WiFi status
+- [X] secure WiFi password storage
+- [X] data publishing: MQTT
+- [X] MQTT data transfer: plain
+- [ ] MQTT data transfer: TLS
 - [X] data handling: JSON
-- [X] data publishing: HTTP, MQTT
-- [X] configurable HTTP port
-- [X] MQTT data transfer: plain or TLS
-- [X] act as switch (on/off/timed off - duration in ms)
-- [X] publish state change of switch immediately
+- [ ] OTA updates secured with password hash
+- [ ] data publishing: HTTP
+- [ ] configurable HTTP port
+- [ ] act as switch (on/off/timed off - duration in ms)
+- [ ] publish state change of switch immediately
 - [X] two sensor connectors for on/off detection
 
 ## needed additional libraries
  * ArduinoJson
+ * AsyncMqttClient
  * Bounce2
- * i2cSernsorLib
- * WifiManager
+ * ESPAsyncTCP
+ * WiFiManager
 
 ## Wemos/Lolin (d1_mini_pro) shields default
 - i2c: SCL (D1), SDA (D2)
@@ -73,3 +76,7 @@ A http server is started on a configureable port.
 ## get security parameter
  - md5 hash for ota: `echo -n "<password>" | md5sum`
  - fingerprint: `echo | openssl s_client -connect localhost:8883 | openssl x509 -fingerprint -noout`
+
+## mqtt validation
+ - mosquitto_sub -h localhost -u <username> -P <pssword> -v -t <id>/value
+ - mosquitto_pub -h localhost -u <username> -P <pssword> -t <id>/switch -m <message>

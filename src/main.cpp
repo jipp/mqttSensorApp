@@ -1,15 +1,22 @@
 #include <Arduino.h>
 
+#define ARDUINOJSON_ENABLE_STD_STRING 1
+
 #include <iostream>
 #include <sstream>
 #include <iomanip>
 
+#include <ArduinoJson.h>
 #include <AsyncMqttClient.h>
+#include <Bounce2.h>
 #include <ESP8266WiFi.h>
 #include <Ticker.h>
 #include <WiFiManager.h>
+#include <Wire.h>
 
 #include "config.hpp"
+
+ADC_MODE(ADC_VCC)
 
 WiFiEventHandler connectedEventHandler;
 WiFiEventHandler disconnectedEventHandler;
@@ -25,6 +32,33 @@ Ticker mqttPublish;
 std::string id;
 std::string mqttPublishTopic;
 std::string mqttSubscribeTopic;
+
+std::string value;
+
+Bounce sensorSwitch1 = Bounce();
+Bounce sensorSwitch2 = Bounce();
+const int debounceInterval = 5;
+
+std::string getValue()
+{
+  DynamicJsonDocument doc(1024);
+  JsonArray sensorSwitchJson = doc.createNestedArray("sensorSwitch");
+  JsonArray illuminanceJson = doc.createNestedArray("illuminance");
+  JsonArray temperatureJson = doc.createNestedArray("temperature");
+  JsonArray humidityJson = doc.createNestedArray("humidity");
+  JsonArray pressureJson = doc.createNestedArray("pressure");
+  std::string jsonString;
+
+  doc["version"] = VERSION;
+  doc["millis"] = millis();
+  doc["hostname"] = WiFi.hostname();
+  sensorSwitchJson.add(digitalRead(SENSOR_PIN_1));
+  sensorSwitchJson.add(digitalRead(SENSOR_PIN_2));
+
+  serializeJson(doc, jsonString);
+
+  return jsonString;
+}
 
 void wifiConnect()
 {
@@ -46,6 +80,7 @@ void onConnected(const WiFiEventStationModeConnected &event)
 void onDisconnected(const WiFiEventStationModeDisconnected &event)
 {
   std::cout << "Disconnected from Wi-Fi." << std::endl;
+  digitalWrite(LED_BUILTIN, false);
   mqttPublish.detach();
   mqttReconnect.detach();
   wifiReconnect.once(2, wifiConnect);
@@ -54,6 +89,7 @@ void onDisconnected(const WiFiEventStationModeDisconnected &event)
 void onGotIp(const WiFiEventStationModeGotIP &event)
 {
   std::cout << "Got IP: " << std::string(WiFi.localIP().toString().c_str()) << std::endl;
+  digitalWrite(LED_BUILTIN, true);
   connectToMqtt();
 }
 
@@ -83,7 +119,8 @@ void getWiFi()
 
 void mqttPublishMessage()
 {
-  uint16_t packetIdPub = mqttClient.publish(mqttPublishTopic.c_str(), mqttPublishQoS, true, "test");
+  value = getValue();
+  uint16_t packetIdPub = mqttClient.publish(mqttPublishTopic.c_str(), mqttPublishQoS, true, value.c_str());
   std::cout << "Publishing at QoS " << unsigned(mqttPublishQoS) << ", packetId: " << packetIdPub << std::endl;
 }
 
@@ -145,6 +182,15 @@ void setup()
 {
   // general setup
   Serial.begin(460800);
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(SWITCH_PIN, OUTPUT);
+  pinMode(SENSOR_PIN_1, INPUT_PULLUP);
+  pinMode(SENSOR_PIN_2, INPUT_PULLUP);
+  Wire.begin(SDA_PIN, SCL_PIN);
+  sensorSwitch1.attach(SENSOR_PIN_1);
+  sensorSwitch1.interval(debounceInterval);
+  sensorSwitch2.attach(SENSOR_PIN_2);
+  sensorSwitch2.interval(debounceInterval);
 
   // setup WiFi
   connectedEventHandler = WiFi.onStationModeConnected(onConnected);
@@ -163,7 +209,6 @@ void setup()
                << std::hex << std::setw(2) << std::setfill('0') << (int)mac[4]
                << std::hex << std::setw(2) << std::setfill('0') << (int)mac[5];
   id = stringStream.str();
-  std::cout << "id: " << id << std::endl;
   mqttPublishTopic = id + mqttValuePrefix;
   mqttSubscribeTopic = id + mqttSwitchPrefix;
 
@@ -182,4 +227,8 @@ void setup()
 
 void loop()
 {
+  sensorSwitch1.update();
+  sensorSwitch1.read();
+  sensorSwitch2.update();
+  sensorSwitch2.read();
 }
