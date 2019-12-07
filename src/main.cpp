@@ -1,7 +1,6 @@
 #include <Arduino.h>
 
 #include <iostream>
-#include <wire.h>
 
 #include <AsyncMqttClient.h>
 #include <ESP8266WiFi.h>
@@ -20,11 +19,11 @@ std::string ssid;
 
 AsyncMqttClient mqttClient;
 Ticker mqttReconnect;
-Ticker mqttPulish;
+Ticker mqttPublish;
 
 void wifiConnect()
 {
-  std::cout << "Connecting to Wi-Fi...";
+  std::cout << "Connecting to Wi-Fi..." << std::endl;
   WiFi.begin(ssid.c_str(), psk.c_str());
 }
 
@@ -42,6 +41,7 @@ void onConnected(const WiFiEventStationModeConnected &event)
 void onDisconnected(const WiFiEventStationModeDisconnected &event)
 {
   std::cout << "Disconnected from Wi-Fi." << std::endl;
+  mqttPublish.detach();
   mqttReconnect.detach();
   wifiReconnect.once(2, wifiConnect);
 }
@@ -59,7 +59,7 @@ void onDHCPTimeout()
 
 void getWiFi()
 {
-  const unsigned long timeout = 180;
+  const uint64 timeout = 180;
   WiFiManager wifiManager;
 
   WiFi.hostname(hostname.c_str());
@@ -92,7 +92,7 @@ void onMqttConnect(bool sessionPresent)
   std::cout << "Session present: " << sessionPresent << std::endl;
   uint16_t packetIdSub = mqttClient.subscribe("test/lol", 2);
   std::cout << "Subscribing at QoS 2, packetId: " << packetIdSub << std::endl;
-  mqttPulish.attach(10, mqttPublishMessage);
+  mqttPublish.attach(10, mqttPublishMessage);
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
@@ -101,7 +101,6 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 
   if (WiFi.isConnected())
   {
-    mqttPulish.detach();
     mqttReconnect.once(2, connectToMqtt);
   }
 }
