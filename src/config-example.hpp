@@ -23,7 +23,7 @@ static const std::string otaPasswordHash = "<md5 hash for password>";
 static const std::string hostname = "<hostname>";
 
 // webserver port
-static const int serverPort = 80;
+static const int webserverPort = 80;
 
 // measurement intervall
 static const uint32_t measureIntervall = 10;

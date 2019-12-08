@@ -55,8 +55,8 @@ A http server is started on a configureable port.
 - [ ] MQTT data transfer: TLS
 - [X] data handling: JSON
 - [ ] OTA updates secured with password hash
-- [ ] data publishing: HTTP
-- [ ] configurable HTTP port
+- [X] data publishing: HTTP
+- [X] configurable HTTP port
 - [ ] act as switch (on/off/timed off - duration in ms)
 - [ ] publish state change of switch immediately
 - [X] two sensor connectors for on/off detection

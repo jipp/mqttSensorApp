@@ -10,13 +10,18 @@
 #include <AsyncMqttClient.h>
 #include <Bounce2.h>
 #include <ESP8266WiFi.h>
+#include <ESPAsyncWebServer.h>
+#include <ESPAsyncWiFiManager.h>
 #include <Ticker.h>
-#include <WiFiManager.h>
 #include <Wire.h>
 
 #include "config.hpp"
+#include <i2cSensorLib.h>
 
 ADC_MODE(ADC_VCC)
+
+AsyncWebServer server(webserverPort);
+DNSServer dns;
 
 WiFiEventHandler connectedEventHandler;
 WiFiEventHandler disconnectedEventHandler;
@@ -35,6 +40,12 @@ std::string mqttSubscribeTopic;
 
 std::string value;
 
+Memory memory = Memory();
+VCC vcc = VCC();
+BH1750 bh1750 = BH1750();
+SHT3X sht3x = SHT3X(0x45);
+BMP180 bmp180 = BMP180();
+BME280 bme280 = BME280();
 Bounce sensorSwitch1 = Bounce();
 Bounce sensorSwitch2 = Bounce();
 const int debounceInterval = 5;
@@ -54,6 +65,40 @@ std::string getValue()
   doc["hostname"] = WiFi.hostname();
   sensorSwitchJson.add(sensorSwitch1.read());
   sensorSwitchJson.add(sensorSwitch2.read());
+  if (memory.isAvailable)
+  {
+    memory.getValues();
+    doc["memory"] = memory.get(Sensor::MEMORY_MEASUREMENT);
+  }
+  if (vcc.isAvailable)
+  {
+    vcc.getValues();
+    doc["vcc"] = vcc.get(Sensor::VOLTAGE_MEASUREMENT);
+  }
+  if (bh1750.isAvailable)
+  {
+    bh1750.getValues();
+    illuminanceJson.add(bh1750.get(Sensor::ILLUMINANCE_MEASUREMENT));
+  }
+  if (sht3x.isAvailable)
+  {
+    sht3x.getValues();
+    temperatureJson.add(sht3x.get(Sensor::TEMPERATURE_MEASUREMENT));
+    humidityJson.add(sht3x.get(Sensor::HUMIDITY_MEASUREMENT));
+  }
+  if (bmp180.isAvailable)
+  {
+    bmp180.getValues();
+    temperatureJson.add(bmp180.get(Sensor::TEMPERATURE_MEASUREMENT));
+    pressureJson.add(bmp180.get(Sensor::PRESSURE_MEASUREMENT));
+  }
+  if (bme280.isAvailable)
+  {
+    bme280.getValues();
+    temperatureJson.add(bme280.get(Sensor::TEMPERATURE_MEASUREMENT));
+    pressureJson.add(bme280.get(Sensor::PRESSURE_MEASUREMENT));
+    humidityJson.add(bme280.get(Sensor::HUMIDITY_MEASUREMENT));
+  }
 
   serializeJson(doc, jsonString);
 
@@ -101,7 +146,8 @@ void onDHCPTimeout()
 void getWiFi()
 {
   const uint64 timeout = 180;
-  WiFiManager wifiManager;
+  // WiFiManager wifiManager;
+  AsyncWiFiManager wifiManager(&server, &dns);
 
   WiFi.hostname(hostname.c_str());
   // wifiManager.resetSettings();
@@ -178,19 +224,38 @@ void onMqttPublish(uint16_t packetId)
   std::cout << "  packetId: " << packetId << std::endl;
 }
 
+void notFound(AsyncWebServerRequest *request)
+{
+  request->send(404, "text/plain", "Not found");
+}
+
 void setup()
 {
   // general setup
-  Serial.begin(460800);
+  Serial.begin(SPEED);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(SWITCH_PIN, OUTPUT);
   pinMode(SENSOR_PIN_1, INPUT_PULLUP);
   pinMode(SENSOR_PIN_2, INPUT_PULLUP);
   Wire.begin(SDA_PIN, SCL_PIN);
+
+  // setup sensors
   sensorSwitch1.attach(SENSOR_PIN_1);
   sensorSwitch1.interval(debounceInterval);
   sensorSwitch2.attach(SENSOR_PIN_2);
   sensorSwitch2.interval(debounceInterval);
+  memory.begin();
+  memory.isAvailable ? std::cout << "memory " : std::cout << ". ";
+  vcc.begin();
+  vcc.isAvailable ? std::cout << "vcc " : std::cout << ". ";
+  bh1750.begin();
+  bh1750.isAvailable ? std::cout << "bh1750 " : std::cout << ". ";
+  sht3x.begin();
+  sht3x.isAvailable ? std::cout << "sht3x " : std::cout << ". ";
+  bmp180.begin();
+  bmp180.isAvailable ? std::cout << "bmp180 " : std::cout << ". ";
+  bme280.begin();
+  bme280.isAvailable ? std::cout << "bme280  " << std::endl : std::cout << "." << std::endl;
 
   // setup WiFi
   connectedEventHandler = WiFi.onStationModeConnected(onConnected);
@@ -220,6 +285,13 @@ void setup()
   mqttClient.onUnsubscribe(onMqttUnsubscribe);
   mqttClient.onMessage(onMqttMessage);
   mqttClient.onPublish(onMqttPublish);
+
+  // setup webserver
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(200, "text/plain", getValue().c_str());
+  });
+  server.onNotFound(notFound);
+  server.begin();
 
   // start
   getWiFi();
