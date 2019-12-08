@@ -7,12 +7,14 @@
 #include <sstream>
 
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
 #include <AsyncMqttClient.h>
 #include <Bounce2.h>
+#include <EEPROM.h>
+#include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
-#include <ESPAsyncWebServer.h>
-#include <ESPAsyncWiFiManager.h>
 #include <Ticker.h>
+#include <WiFiManager.h>
 #include <Wire.h>
 
 #include "config.hpp"
@@ -20,8 +22,7 @@
 
 ADC_MODE(ADC_VCC)
 
-AsyncWebServer server(webserverPort);
-DNSServer dns;
+ESP8266WebServer webServer(webServerPort);
 
 WiFiEventHandler connectedEventHandler;
 WiFiEventHandler disconnectedEventHandler;
@@ -49,6 +50,10 @@ BME280 bme280 = BME280();
 Bounce sensorSwitch1 = Bounce();
 Bounce sensorSwitch2 = Bounce();
 const int debounceInterval = 5;
+Ticker switchTimer;
+
+static const int eepromAddress = 512;
+static const int addressSwitchState = 0;
 
 std::string getValue()
 {
@@ -65,6 +70,7 @@ std::string getValue()
   doc["hostname"] = WiFi.hostname();
   sensorSwitchJson.add(sensorSwitch1.read());
   sensorSwitchJson.add(sensorSwitch2.read());
+  doc["switch"] = (digitalRead(SWITCH_PIN) == 1);
   if (memory.isAvailable)
   {
     memory.getValues();
@@ -105,6 +111,20 @@ std::string getValue()
   return jsonString;
 }
 
+void setSwitchFromEEPROM()
+{
+  EEPROM.begin(eepromAddress);
+  digitalWrite(SWITCH_PIN, EEPROM.read(addressSwitchState));
+  EEPROM.end();
+}
+
+void setEEPROMfromSwitch()
+{
+  EEPROM.begin(eepromAddress);
+  EEPROM.write(addressSwitchState, digitalRead(SWITCH_PIN));
+  EEPROM.end();
+}
+
 void wifiConnect()
 {
   std::cout << "Connecting to Wi-Fi..." << std::endl;
@@ -128,6 +148,7 @@ void onDisconnected(const WiFiEventStationModeDisconnected &event)
   digitalWrite(LED_BUILTIN, false);
   mqttPublish.detach();
   mqttReconnect.detach();
+  webServer.stop();
   wifiReconnect.once(2, wifiConnect);
 }
 
@@ -136,6 +157,8 @@ void onGotIp(const WiFiEventStationModeGotIP &event)
   std::cout << "Got IP: " << std::string(WiFi.localIP().toString().c_str()) << std::endl;
   digitalWrite(LED_BUILTIN, true);
   connectToMqtt();
+  webServer.begin();
+  ArduinoOTA.begin();
 }
 
 void onDHCPTimeout()
@@ -146,8 +169,7 @@ void onDHCPTimeout()
 void getWiFi()
 {
   const uint64 timeout = 180;
-  // WiFiManager wifiManager;
-  AsyncWiFiManager wifiManager(&server, &dns);
+  WiFiManager wifiManager;
 
   WiFi.hostname(hostname.c_str());
   // wifiManager.resetSettings();
@@ -202,9 +224,22 @@ void onMqttUnsubscribe(uint16_t packetId)
   std::cout << "  packetId: " << packetId << std::endl;
 }
 
+void switchOn()
+{
+  digitalWrite(SWITCH_PIN, 1);
+  mqttPublishMessage();
+}
+
+void switchOff()
+{
+  digitalWrite(SWITCH_PIN, 0);
+  mqttPublishMessage();
+}
+
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
   std::string buffer;
+  int value;
 
   std::cout << "Publish received." << std::endl;
   std::cout << "  topic: " << topic << std::endl;
@@ -216,6 +251,26 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   std::cout << "  total: " << total << std::endl;
   payload[len] = '\0';
   std::cout << "  payload: " << payload << std::endl;
+
+  std::istringstream(payload) >> value;
+  std::cout << "value: " << value << std::endl;
+
+  switch (value)
+  {
+  case 0:
+    switchOff();
+    switchTimer.detach();
+    break;
+  case 1:
+    switchOn();
+    switchTimer.detach();
+    break;
+  default:
+    switchOn();
+    switchTimer.once_ms(value, switchOff);
+    break;
+  };
+  setEEPROMfromSwitch();
 }
 
 void onMqttPublish(uint16_t packetId)
@@ -224,15 +279,11 @@ void onMqttPublish(uint16_t packetId)
   std::cout << "  packetId: " << packetId << std::endl;
 }
 
-void notFound(AsyncWebServerRequest *request)
-{
-  request->send(404, "text/plain", "Not found");
-}
-
 void setup()
 {
   // general setup
   Serial.begin(SPEED);
+  setSwitchFromEEPROM();
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(SWITCH_PIN, OUTPUT);
   pinMode(SENSOR_PIN_1, INPUT_PULLUP);
@@ -287,11 +338,57 @@ void setup()
   mqttClient.onPublish(onMqttPublish);
 
   // setup webserver
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/plain", getValue().c_str());
+  webServer.onNotFound([]() {
+    webServer.send(404, "text/plain", "Not found");
   });
-  server.onNotFound(notFound);
-  server.begin();
+  webServer.on("/", []() {
+    webServer.send(200, "application/json", getValue().c_str());
+  });
+
+  // setup OTA
+  ArduinoOTA.setPasswordHash(otaPasswordHash.c_str());
+  ArduinoOTA.onStart([]() {
+    std::string type;
+    if (ArduinoOTA.getCommand() == U_FLASH)
+      type = "sketch";
+    else
+      type = "filesystem";
+    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+    std::cout << "Start updating " + type << std::endl;
+  });
+
+  ArduinoOTA.onEnd([]() {
+    std::cout << "\nEnd" << std::endl;
+  });
+
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    std::cout << "Progress: " << (int)(progress / (total / 100)) << "%" << std::endl;
+  });
+
+  ArduinoOTA.onError([](ota_error_t error) {
+    std::cout << "Error[" << error << "]: " << error << std::endl;
+
+    switch (error)
+    {
+    case OTA_AUTH_ERROR:
+      std::cout << "Auth Failed" << std::endl;
+      break;
+    case OTA_BEGIN_ERROR:
+      std::cout << "Begin Failed" << std::endl;
+      break;
+    case OTA_CONNECT_ERROR:
+      std::cout << "Connect Failed" << std::endl;
+      break;
+    case OTA_RECEIVE_ERROR:
+      std::cout << "Receive Failed" << std::endl;
+      break;
+    case OTA_END_ERROR:
+      std::cout << "End Failed" << std::endl;
+      break;
+    default:
+      std::cout << "not identified" << std::endl;
+    }
+  });
 
   // start
   getWiFi();
@@ -301,4 +398,9 @@ void loop()
 {
   sensorSwitch1.update();
   sensorSwitch2.update();
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    webServer.handleClient();
+    ArduinoOTA.handle();
+  }
 }

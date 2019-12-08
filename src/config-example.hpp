@@ -23,7 +23,7 @@ static const std::string otaPasswordHash = "<md5 hash for password>";
 static const std::string hostname = "<hostname>";
 
 // webserver port
-static const int webserverPort = 80;
+static const int webServerPort = 80;
 
 // measurement intervall
 static const uint32_t measureIntervall = 10;
@@ -31,8 +31,8 @@ static const uint32_t measureIntervall = 10;
 // mqtt settings
 static const std::string mqttServer = "<mqtt-broker>";
 static const uint16_t mqttPort PROGMEM = 1883;
-static const uint16_t mqtt_port_secure PROGMEM = 8883;
-static const std::string mqtt_fingerprint = "<fingerprint>";
+static const uint16_t mqttPortSecure PROGMEM = 8883;
+static const std::string mqttFingerprint = "<fingerprint>";
 static const std::string mqttUsername = "<mqtt-user>";
 static const std::string mqttPassword =  "<mqtt-password>";
 static const std::string mqttValuePrefix = "<mqtt-topic-value-prefix>";
