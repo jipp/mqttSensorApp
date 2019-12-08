@@ -2,9 +2,9 @@
 
 #define ARDUINOJSON_ENABLE_STD_STRING 1
 
+#include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <iomanip>
 
 #include <ArduinoJson.h>
 #include <AsyncMqttClient.h>
@@ -52,8 +52,8 @@ std::string getValue()
   doc["version"] = VERSION;
   doc["millis"] = millis();
   doc["hostname"] = WiFi.hostname();
-  sensorSwitchJson.add(digitalRead(SENSOR_PIN_1));
-  sensorSwitchJson.add(digitalRead(SENSOR_PIN_2));
+  sensorSwitchJson.add(sensorSwitch1.read());
+  sensorSwitchJson.add(sensorSwitch2.read());
 
   serializeJson(doc, jsonString);
 
@@ -228,7 +228,5 @@ void setup()
 void loop()
 {
   sensorSwitch1.update();
-  sensorSwitch1.read();
   sensorSwitch2.update();
-  sensorSwitch2.read();
 }
