@@ -36,12 +36,12 @@ In case you connect different sensors and multiple values are read for the same 
 
 `{"vcc":[<value in volt>],"illuminance":[<value in lux>],"temperature":[<value in degrees celsius>],"humidity":[<value in %>],"pressure":[<value in hPa>]}`
 
-eg: `{"sensorSwitch":[1,1],"illuminance":[],"temperature":[23.78],"humidity":[74.28711],"pressure":[994.9861],"version":"v1.2.5-19-g4903c6d-dirty","millis":448196,"hostname":"trial-sensor","memory":4920,"vcc":3.017,"switch":0}`
+eg: `5ccf7f3c830d/value {"sensorSwitch":[true,true],"illuminance":[],"temperature":[21.05],"humidity":[74.08301],"pressure":[975.1332],"version":"bv1.2.5-30-gcd37613-dirty","millis":43279,"hostname":"test-sensor","switch":true,"memory":15864,"vcc":3.017}`
 
-#### switch structure
+#### switch message structure
 - '0' switch 'off'
 - '1' switch 'on'
-- 'x' switch/keep for x milliseconds 'on' then 'off' (x > 1)
+- 'x' switch/keep for x milliseconds 'on' then 'off' (x > 1ms)
 
 ### Web Server
 A http server is started on a configureable port. 
@@ -51,8 +51,9 @@ A http server is started on a configureable port.
 - [X] build-in LED shows WiFi status
 - [X] secure WiFi password storage
 - [X] data publishing: MQTT
+- [X] MQTT with or without username/password
 - [X] MQTT data transfer: plain
-- [ ] MQTT data transfer: TLS
+- [X] MQTT data transfer: TLS
 - [X] data handling: JSON
 - [X] OTA updates secured with password hash
 - [X] data publishing: HTTP
@@ -73,10 +74,14 @@ A http server is started on a configureable port.
 - switch (D5)
 - contact sensor (D6/D7)
 
-## get security parameter
- - md5 hash for ota: `echo -n "<password>" | md5sum`
- - fingerprint: `echo | openssl s_client -connect localhost:8883 | openssl x509 -fingerprint -noout`
+## security parameter
+ - generate md5 hash for ota: `echo -n "<password>" | md5sum`
+ - get fingerprint: `echo | openssl s_client -connect localhost:8883 | openssl x509 -fingerprint -noout`
 
 ## mqtt validation
  - mosquitto_sub -h localhost -u <username> -P <pssword> -v -t <id>/value
  - mosquitto_pub -h localhost -u <username> -P <pssword> -t <id>/switch -m <message>
+
+## command for ota installation
+ - Change the upload auth password in platformio.ini
+ - pio run -t upload -e d1_mini_pro_remote --upload-port=<ip address>

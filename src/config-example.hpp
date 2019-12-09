@@ -30,9 +30,9 @@ static const uint32_t measureIntervall = 10;
 
 // mqtt settings
 static const std::string mqttServer = "<mqtt-broker>";
-static const uint16_t mqttPort PROGMEM = 1883;
-static const uint16_t mqttPortSecure PROGMEM = 8883;
-static const std::string mqttFingerprint = "<fingerprint>";
+static const uint16_t mqttPort = 1883;
+static const uint16_t mqttPortSecure = 8883;
+const uint8_t mqttFingerprint[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static const std::string mqttUsername = "<mqtt-user>";
 static const std::string mqttPassword =  "<mqtt-password>";
 static const std::string mqttValuePrefix = "<mqtt-topic-value-prefix>";

@@ -205,6 +205,11 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
   std::cout << "Disconnected from MQTT." << std::endl;
 
+  if (reason == AsyncMqttClientDisconnectReason::TLS_BAD_FINGERPRINT)
+  {
+    std::cout << "Bad server fingerprint." << std::endl;
+  }
+
   if (WiFi.isConnected())
   {
     mqttReconnect.once(2, connectToMqtt);
@@ -227,12 +232,14 @@ void onMqttUnsubscribe(uint16_t packetId)
 void switchOn()
 {
   digitalWrite(SWITCH_PIN, 1);
+  setEEPROMfromSwitch();
   mqttPublishMessage();
 }
 
 void switchOff()
 {
   digitalWrite(SWITCH_PIN, 0);
+  setEEPROMfromSwitch();
   mqttPublishMessage();
 }
 
@@ -253,7 +260,6 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   std::cout << "  payload: " << payload << std::endl;
 
   std::istringstream(payload) >> value;
-  std::cout << "value: " << value << std::endl;
 
   switch (value)
   {
@@ -270,7 +276,6 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     switchTimer.once_ms(value, switchOff);
     break;
   };
-  setEEPROMfromSwitch();
 }
 
 void onMqttPublish(uint16_t packetId)
@@ -330,8 +335,20 @@ void setup()
 
   mqttClient.onConnect(onMqttConnect);
   mqttClient.onDisconnect(onMqttDisconnect);
-  mqttClient.setServer(mqttServer.c_str(), mqttPort);
-  mqttClient.setCredentials(mqttUsername.c_str(), mqttPassword.c_str());
+  if (!mqttUsername.empty() or !mqttPassword.empty())
+  {
+    mqttClient.setCredentials(mqttUsername.c_str(), mqttPassword.c_str());
+  }
+  if (sizeof(mqttFingerprint) == 20)
+  {
+    mqttClient.setServer(mqttServer.c_str(), mqttPortSecure);
+    mqttClient.setSecure(true);
+    mqttClient.addServerFingerprint(mqttFingerprint);
+  }
+  else
+  {
+    mqttClient.setServer(mqttServer.c_str(), mqttPort);
+  }
   mqttClient.onSubscribe(onMqttSubscribe);
   mqttClient.onUnsubscribe(onMqttUnsubscribe);
   mqttClient.onMessage(onMqttMessage);
@@ -356,15 +373,12 @@ void setup()
     // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
     std::cout << "Start updating " + type << std::endl;
   });
-
   ArduinoOTA.onEnd([]() {
     std::cout << "\nEnd" << std::endl;
   });
-
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
     std::cout << "Progress: " << (int)(progress / (total / 100)) << "%" << std::endl;
   });
-
   ArduinoOTA.onError([](ota_error_t error) {
     std::cout << "Error[" << error << "]: " << error << std::endl;
 
