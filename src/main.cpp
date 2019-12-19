@@ -18,7 +18,13 @@
 #include <Wire.h>
 
 #include "config.hpp"
-#include <i2cSensorLib.h>
+#include <BH1750.hpp>
+#include <BME280.hpp>
+#include <BMP180.hpp>   
+#include <Dummy.hpp>
+#include <Memory.hpp>
+#include <SHT3X.hpp>
+#include <VCC.hpp>
 
 ADC_MODE(ADC_VCC)
 
@@ -74,36 +80,36 @@ std::string getValue()
   if (memory.isAvailable)
   {
     memory.getValues();
-    doc["memory"] = memory.get(Sensor::MEMORY_MEASUREMENT);
+    doc["memory"] = memory.get(Measurement::MEMORY);
   }
   if (vcc.isAvailable)
   {
     vcc.getValues();
-    doc["vcc"] = vcc.get(Sensor::VOLTAGE_MEASUREMENT);
+    doc["vcc"] = vcc.get(Measurement::VOLTAGE);
   }
   if (bh1750.isAvailable)
   {
     bh1750.getValues();
-    illuminanceJson.add(bh1750.get(Sensor::ILLUMINANCE_MEASUREMENT));
+    illuminanceJson.add(bh1750.get(Measurement::ILLUMINANCE));
   }
   if (sht3x.isAvailable)
   {
     sht3x.getValues();
-    temperatureJson.add(sht3x.get(Sensor::TEMPERATURE_MEASUREMENT));
-    humidityJson.add(sht3x.get(Sensor::HUMIDITY_MEASUREMENT));
+    temperatureJson.add(sht3x.get(Measurement::TEMPERATURE));
+    humidityJson.add(sht3x.get(Measurement::HUMIDITY));
   }
   if (bmp180.isAvailable)
   {
     bmp180.getValues();
-    temperatureJson.add(bmp180.get(Sensor::TEMPERATURE_MEASUREMENT));
-    pressureJson.add(bmp180.get(Sensor::PRESSURE_MEASUREMENT));
+    temperatureJson.add(bmp180.get(Measurement::TEMPERATURE));
+    pressureJson.add(bmp180.get(Measurement::PRESSURE));
   }
   if (bme280.isAvailable)
   {
     bme280.getValues();
-    temperatureJson.add(bme280.get(Sensor::TEMPERATURE_MEASUREMENT));
-    pressureJson.add(bme280.get(Sensor::PRESSURE_MEASUREMENT));
-    humidityJson.add(bme280.get(Sensor::HUMIDITY_MEASUREMENT));
+    temperatureJson.add(bme280.get(Measurement::TEMPERATURE));
+    pressureJson.add(bme280.get(Measurement::PRESSURE));
+    humidityJson.add(bme280.get(Measurement::HUMIDITY));
   }
 
   serializeJson(doc, jsonString);
