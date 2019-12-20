@@ -20,7 +20,7 @@
 #include "config.hpp"
 #include <BH1750.hpp>
 #include <BME280.hpp>
-#include <BMP180.hpp>   
+#include <BMP180.hpp>
 #include <Dummy.hpp>
 #include <Memory.hpp>
 #include <SHT3X.hpp>
@@ -281,7 +281,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     switchOn();
     switchTimer.once_ms(value, switchOff);
     break;
-  };
+  }
 }
 
 void onMqttPublish(uint16_t packetId)
