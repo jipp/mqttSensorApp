@@ -14,6 +14,6 @@ install:
     - pip install -U platformio
 
 script:
-    - cp src/config-example.h src/config.h
+    - cp src/config-example.hpp src/config.hpp
     - platformio update
     - platformio run

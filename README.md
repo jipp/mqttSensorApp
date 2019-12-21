@@ -15,13 +15,13 @@ This app is collecting data using different sensors connected via I2C. In additi
 PlatformIO
 
 ## Configurataion
-Configuration parameters can be changed in the `config.h` file.
+Configuration parameters can be changed in the `config.hpp` file.
 
 ### WiFi configuraion
 If it is not possible to connect to an existing WiFi network during boot an access point will be started to reconfigure the credentials. After a timeout a reboot will take place to try reconnecting with already stored credentials.
 
 ### MQTT
-MQTT can be used either plain or over TLS. Server, port and other parameters can be configured manually using `config.h`.
+MQTT can be used either plain or over TLS. Server, port and other parameters can be configured manually using `config.hpp`.
 
 #### topic structure
 - publish value: `<macAddress w/o ":">/value`
@@ -36,42 +36,52 @@ In case you connect different sensors and multiple values are read for the same 
 
 `{"vcc":[<value in volt>],"illuminance":[<value in lux>],"temperature":[<value in degrees celsius>],"humidity":[<value in %>],"pressure":[<value in hPa>]}`
 
-eg: `{"vcc":[3.026],"illuminance":[],"temperature":[25.32,24.02],"humidity":[50.56543],"pressure":[997.304]}`
+eg: `5ccf7f3c830d/value {"sensorSwitch":[true,true],"illuminance":[],"temperature":[21.05],"humidity":[74.08301],"pressure":[975.1332],"version":"bv1.2.5-30-gcd37613-dirty","millis":43279,"hostname":"test-sensor","switch":true,"memory":15864,"vcc":3.017}`
 
-#### switch structure
+#### switch message structure
 - '0' switch 'off'
 - '1' switch 'on'
-- 'x' switch/keep for x milliseconds 'on' then 'off' (x > 1)
+- 'x' switch/keep for x milliseconds 'on' then 'off' (x > 1ms)
 
 ### Web Server
 A http server is started on a configureable port. 
 
 ## supported Features
-- [X] OTA updates secured with password hash
 - [X] WiFi configuration started when not connecting to WiFi (running AP running till timeout and restarting)
-- [X] secure WiFi password storage
 - [X] build-in LED shows WiFi status
+- [X] secure WiFi password storage
+- [X] data publishing: MQTT
+- [X] MQTT with or without username/password
+- [X] MQTT data transfer: plain
+- [X] MQTT data transfer: TLS
 - [X] data handling: JSON
-- [X] data publishing: HTTP, MQTT
+- [X] OTA updates secured with password hash
+- [X] data publishing: HTTP
 - [X] configurable HTTP port
-- [X] MQTT data transfer: plain or TLS
 - [X] act as switch (on/off/timed off - duration in ms)
 - [X] publish state change of switch immediately
 - [X] two sensor connectors for on/off detection
 
 ## needed additional libraries
  * ArduinoJson
- * ArduinoStreaming
+ * AsyncMqttClient
  * Bounce2
- * i2cSernsorLib
- * PubSubClient
- * WifiManager
+ * ESPAsyncTCP
+ * WiFiManager
 
 ## Wemos/Lolin (d1_mini_pro) shields default
 - i2c: SCL (D1), SDA (D2)
 - switch (D5)
 - contact sensor (D6/D7)
 
-## get security parameter
- - md5 hash for ota: `echo -n "<password>" | md5sum`
- - fingerprint: `echo | openssl s_client -connect localhost:8883 | openssl x509 -fingerprint -noout`
+## security parameter
+ - generate md5 hash for ota: `echo -n "<password>" | md5sum`
+ - get fingerprint: `echo | openssl s_client -connect localhost:8883 | openssl x509 -fingerprint -noout`
+
+## mqtt validation
+ - mosquitto_sub -h localhost -u <username> -P <pssword> -v -t <id>/value
+ - mosquitto_pub -h localhost -u <username> -P <pssword> -t <id>/switch -m <message>
+
+## command for ota installation
+ - Change the upload auth password in platformio.ini
+ - pio run -t upload -e d1_mini_pro_remote --upload-port=<ip address>

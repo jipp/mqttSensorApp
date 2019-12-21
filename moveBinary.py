@@ -6,8 +6,8 @@ import os
 def after_bin(source, target, env):
     version = ""
 
-    print "source: " + str(source[0])
-    print "target: " + str(target[0])
+    print("source: " + str(source[0]))
+    print("target: " + str(target[0]))
 
     cppdefines = env.ParseFlags(env['BUILD_FLAGS']).get("CPPDEFINES")
     for arr in cppdefines:
@@ -25,11 +25,11 @@ def after_bin(source, target, env):
     if not os.path.exists(path):
         os.makedirs(path)
 
-    print "src: " + srcFile
-    print "dst: " + dstFile
+    print("src: " + srcFile)
+    print("dst: " + dstFile)
     copyfile(srcFile, dstFile)
 
 
-print "Current build targets", map(str, BUILD_TARGETS)
+print("Current build targets", map(str, BUILD_TARGETS))
 
 env.AddPostAction("$BUILD_DIR/firmware.bin", after_bin)
