@@ -264,11 +264,11 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   payload[len] = '\0';
   std::cout << "  payload: " << payload << std::endl;
 
-  if (!strcmp(payload, "true"))
+  if (strcmp(payload, "true") == 0)
   {
     value = 1;
   }
-  else if (!strcmp(payload, "false"))
+  else if (strcmp(payload, "false") == 0)
   {
     value = 0;
   }
