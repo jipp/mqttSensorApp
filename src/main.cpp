@@ -251,7 +251,6 @@ void switchOff()
 
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
-  std::string buffer;
   int value;
 
   std::cout << "Publish received." << std::endl;
@@ -265,7 +264,20 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   payload[len] = '\0';
   std::cout << "  payload: " << payload << std::endl;
 
-  std::istringstream(payload) >> value;
+  if (strcmp(payload, "true") == 0)
+  {
+    value = 1;
+  }
+  else if (strcmp(payload, "false") == 0)
+  {
+    value = 0;
+  }
+  else
+  {
+    std::istringstream(payload) >> value;
+  }
+
+  std::cout << "  value: " << value << std::endl;
 
   switch (value)
   {
