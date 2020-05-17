@@ -40,6 +40,17 @@ module hull()
     }
 }
 
+module hole()
+{
+    translate([13, hull_y / 2, 0]) cylinder(h = t, r2 = 2.5, r1 = 5);
+}
+
+module holder()
+{
+    translate([8, hull_y / 2 - 4.35, 0]) cylinder(h = 3 + t, r = 1.5);
+    translate([8, hull_y / 2 + 4.35, 0]) cylinder(h = 3 + t, r = 1.5);    
+}
+
 module border()
 {
     height = 1.5;
@@ -60,12 +71,13 @@ module cover()
             cube([hull_x, hull_y, t-1]);
             cylinder(r=t, h=1);
         }
+        hole();
     }
     
     translate([(1-tolerance)/2*hull_x,(1-tolerance)/2*hull_y, t]) border();
+    holder();
 }
 
 translate([0, 0, 0]) hull();
 translate([0, -hull_y-10, 0]) color("red", 1.0) cover();
 //translate([0, hull_y, hull_z+1]) rotate([180, 0, 0]) color("red", 1.0) cover();
-
