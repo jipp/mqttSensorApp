@@ -1,26 +1,25 @@
 t = 1.2;
-t_z = 2;
-tolerance = 0.99;
+tolerance = 0.98;
 
-hull_x = 34.2;
-hull_y = 25.6;
-hull_z = 12.0;
+hull_x = 34.2*1.01;
+hull_y = 25.6*1.01;
+hull_z = 10.0;
 
 $fn=36;
 
 module usb()
 {
-    translate([-t, hull_y/2 + t-7, 0]) cube([3, 12 ,8]);
+    translate([-t, hull_y/2 + t-8, 0]) cube([3, 12 ,6+t]);
 }
 
 module reset()
 {
-    translate([-t, hull_y-2, 0]) cube([10, 2+t, 6+t]);
+    translate([-t, hull_y-2, 0]) cube([10, 2+t, 5+t]);
 }
 
 module cable()
 {
-    translate([(hull_x-4)/2, -t, (hull_z-1)/2]) cube([4, t, 2]);
+    translate([(hull_x-4)/2, -t, (hull_z-2)/2]) cube([4, t, 2]);
 
 }
 
@@ -34,7 +33,7 @@ module hull()
             cylinder(r=t, h=1);
         }
     
-        translate([0, 0, t_z]) cube([hull_x, hull_y, hull_z-t_z]);
+        translate([0, 0, t]) cube([hull_x, hull_y, hull_z-t]);
         usb();
         reset();
         cable();
