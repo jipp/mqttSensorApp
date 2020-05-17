@@ -8,6 +8,22 @@ hull_z = 12.0;
 
 $fn=36;
 
+module usb()
+{
+    translate([-t, hull_y/2 + t-7, 0]) cube([3, 12 ,8]);
+}
+
+module reset()
+{
+    translate([-t, hull_y-2, 0]) cube([10, 2+t, 6+t]);
+}
+
+module cable()
+{
+    translate([(hull_x-4)/2, -t, (hull_z-1)/2]) cube([4, t, 2]);
+
+}
+
 module hull()
 {    
     difference()
@@ -19,6 +35,9 @@ module hull()
         }
     
         translate([0, 0, t_z]) cube([hull_x, hull_y, hull_z-t_z]);
+        usb();
+        reset();
+        cable();
     }
 }
 
