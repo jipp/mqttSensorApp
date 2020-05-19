@@ -7,6 +7,9 @@ hull_z = 10.0;
 
 $fn=36;
 
+cableHole = true;
+sensorHole = true;
+
 module usb()
 {
     translate([-t, hull_y/2 + t-8, 0]) cube([3, 12 ,6+t]);
@@ -34,9 +37,14 @@ module hull()
         }
     
         translate([0, 0, t]) cube([hull_x, hull_y, hull_z-t]);
+        
         usb();
         reset();
-        cable();
+        
+        if (cableHole)
+        {
+            cable();
+        }
     }
 }
 
@@ -71,11 +79,19 @@ module cover()
             cube([hull_x, hull_y, t-1]);
             cylinder(r=t, h=1);
         }
-        hole();
+        
+        if (sensorHole)
+        {
+            hole();
+        }
     }
     
     translate([(1-tolerance)/2*hull_x,(1-tolerance)/2*hull_y, t]) border();
-    holder();
+    
+    if (sensorHole)
+    {
+        holder();
+    }
 }
 
 translate([0, 0, 0]) hull();
