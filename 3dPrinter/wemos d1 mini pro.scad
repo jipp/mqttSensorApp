@@ -50,7 +50,7 @@ module hull()
 
 module hole()
 {
-    translate([13, hull_y / 2, 0]) cylinder(h = t, r2 = 2.5, r1 = 5);
+    translate([14, hull_y / 2, 0]) cylinder(h = t, r2 = 2.5, r1 = 5);
 }
 
 module holder()
