@@ -1,9 +1,9 @@
 t = 1.2;
 tolerance = 0.98;
 
-hull_x = 34.2*1.01;
-hull_y = 25.6*1.01;
-hull_z = 10.0;
+hull_x = 34.2*1.02;
+hull_y = 25.6*1.02;
+hull_z = 10.0 + t;
 
 $fn=36;
 
@@ -12,7 +12,7 @@ sensorHole = true;
 
 module usb()
 {
-    cube([3+t, 12, 6+t]);
+    cube([t, 12, 6]);
 }
 
 module reset()
@@ -43,7 +43,7 @@ module hull()
     
         translate([0, 0, t]) cube([hull_x, hull_y, hull_z-t]);
         
-        translate([-t, hull_y/2 -8, 0]) usb();
+        translate([-t, hull_y/2 -8, t]) usb();
         translate([-t, hull_y-2, 0]) reset();
         
         if (cableHole)
@@ -51,20 +51,20 @@ module hull()
             translate([(hull_x-4)/2, -t, (hull_z-2)/2]) cable();
         }
         
-        translate([6, 0, 6]) rotate([90, 0, 0]) snapHole();
-        translate([hull_x - 6, hull_y, 6]) rotate([270, 0, 0]) snapHole();
+        translate([6, 0, 5+2*t]) rotate([90, 0, 0]) snapHole();
+        translate([hull_x - 6, hull_y, 5+2*t]) rotate([270, 0, 0]) snapHole();
     }
 }
 
 module hole()
 {
-    translate([14, hull_y / 2, 0]) cylinder(h = t, r2 = 2.5, r1 = 5);
+    cylinder(h = t, r2 = 2.5, r1 = 5);
 }
 
 module holder()
 {
-    translate([8, hull_y / 2 - 4.35, 0]) cylinder(h = 3 + t, r = 1.5);
-    translate([8, hull_y / 2 + 4.35, 0]) cylinder(h = 3 + t, r = 1.5);    
+    cylinder(h = 3 + t, r = 1.5);
+    cylinder(h = 3 + t, r = 1.5);    
 }
 
 module border()
@@ -99,7 +99,7 @@ module cover()
         
         if (sensorHole)
         {
-            hole();
+            translate([14, hull_y / 2, 0]) hole();
         }
     }
     
@@ -107,14 +107,14 @@ module cover()
     
     if (sensorHole)
     {
-        holder();
+        translate([8, hull_y / 2 - 4.35, 0]) holder();
+        translate([8, hull_y / 2 + 4.35, 0]) holder();
     }
     
-    translate([(1-tolerance)/2*hull_x+8, hull_y - (1-tolerance)/2*hull_y, 0]) rotate([0, 0, 180]) latch();
-    translate([hull_x-(1-tolerance)/2*hull_x - 8, (1-tolerance)/2*hull_y, 0]) latch();
+    translate([8, hull_y - (1-tolerance)/2*hull_y, 0]) rotate([0, 0, 180]) latch();
+    translate([hull_x - 8, (1-tolerance)/2*hull_y, 0]) latch();
 }
 
-//translate([0, 0, 0]) hull();
-//translate([0, -hull_y-10, 0]) color("red", 1.0) cover();
-//translate([0, hull_y, hull_z+1]) rotate([180, 0, 0]) color("red", 1.0) cover();
-translate([0, 0, 0]) rotate([180, 0, 0]) color("red", 1.0) cover();
+translate([0, 0, 0]) hull();
+translate([0, -hull_y-10, 0]) color("red", 1.0) cover();
+// translate([0, hull_y, hull_z+1]) rotate([180, 0, 0]) color("red", 1.0) cover();
