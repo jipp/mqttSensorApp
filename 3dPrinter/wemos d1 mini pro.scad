@@ -12,18 +12,23 @@ sensorHole = true;
 
 module usb()
 {
-    translate([-t, hull_y/2 + t-8, 0]) cube([3, 12 ,6+t]);
+    cube([3+t, 12, 6+t]);
 }
 
 module reset()
 {
-    translate([-t, hull_y-2, 0]) cube([10, 2+t, 5+t]);
+    cube([10+t, 2+t, 5+t]);
 }
 
 module cable()
 {
-    translate([(hull_x-4)/2, -t, (hull_z-2)/2]) cube([4, t, 2]);
+    cube([4, t, 2]);
 
+}
+
+module snapHole()
+{
+    cylinder(h=t, d=2);
 }
 
 module hull()
@@ -38,13 +43,16 @@ module hull()
     
         translate([0, 0, t]) cube([hull_x, hull_y, hull_z-t]);
         
-        usb();
-        reset();
+        translate([-t, hull_y/2 -8, 0]) usb();
+        translate([-t, hull_y-2, 0]) reset();
         
         if (cableHole)
         {
-            cable();
+            translate([(hull_x-4)/2, -t, (hull_z-2)/2]) cable();
         }
+        
+        translate([6, 0, 6]) rotate([90, 0, 0]) snapHole();
+        translate([hull_x - 6, hull_y, 6]) rotate([270, 0, 0]) snapHole();
     }
 }
 
@@ -70,6 +78,15 @@ module border()
     }
 }
 
+module latch()
+{
+    w = 4;
+    d = 2;
+    
+    cube([w, t, 7]);
+    translate([w/2, 0, 5]) rotate([90, 0, 0]) scale ([1, 1, 0.5]) sphere(d=d);
+}
+
 module cover()
 {
     difference()
@@ -92,8 +109,12 @@ module cover()
     {
         holder();
     }
+    
+    translate([(1-tolerance)/2*hull_x+8, hull_y - (1-tolerance)/2*hull_y, 0]) rotate([0, 0, 180]) latch();
+    translate([hull_x-(1-tolerance)/2*hull_x - 8, (1-tolerance)/2*hull_y, 0]) latch();
 }
 
-translate([0, 0, 0]) hull();
-translate([0, -hull_y-10, 0]) color("red", 1.0) cover();
+//translate([0, 0, 0]) hull();
+//translate([0, -hull_y-10, 0]) color("red", 1.0) cover();
 //translate([0, hull_y, hull_z+1]) rotate([180, 0, 0]) color("red", 1.0) cover();
+translate([0, 0, 0]) rotate([180, 0, 0]) color("red", 1.0) cover();
