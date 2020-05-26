@@ -10,6 +10,10 @@ $fn=72;
 cableHole = true;
 sensorHole = true;
 
+module letter() {
+    linear_extrude(t/3) text(text="wobilix", size=2.5);
+}
+
 module usb() {
     cube([t, 12, 6]);
 }
@@ -47,6 +51,8 @@ module hull() {
 
         translate([6, hull_y, hull_z-2-t]) rotate([270, 0, 0]) snapHole();
         translate([hull_x-6, 0, hull_z-2-t]) rotate([90, 0, 0]) snapHole();
+
+        translate([hull_x, 0, t/3]) rotate([0, 180, 0]) letter();
     }
 }
 
@@ -60,11 +66,9 @@ module holder() {
 }
 
 module border() {
-    height = 1.5;
-    
     difference() {
-        cube([hull_x*tolerance, hull_y*tolerance, height]);
-        translate([t, t, 0]) cube([hull_x*tolerance-2*t, hull_y*tolerance-2*t, height]);
+        cube([hull_x*tolerance, hull_y*tolerance, t]);
+        translate([t, t, 0]) cube([hull_x*tolerance-2*t, hull_y*tolerance-2*t, t]);
     }
 }
 
@@ -86,6 +90,8 @@ module cover() {
         if (sensorHole) {
             translate([12, hull_y/2, 0]) hole();
         }
+        
+        translate([hull_x, 0, t/3]) rotate([0, 180, 0]) letter();
     }
     
     translate([(1-tolerance)/2*hull_x,(1-tolerance)/2*hull_y, t]) border();
