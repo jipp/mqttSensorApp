@@ -15,7 +15,7 @@ def after_bin(source, target, env):
             if arr[0] == "VERSION":
                 version = arr[1]
 
-    if version is "":
+    if version == "":
         version = "mqttSensorApp"
 
     path = "bin"
