@@ -5,3 +5,5 @@
 .vscode/ipch
 src/config.hpp
 bin
+*.gcode
+*.stl

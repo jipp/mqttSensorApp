@@ -1,6 +1,8 @@
 #include <Arduino.h>
 
 #define ARDUINOJSON_ENABLE_STD_STRING 1
+#define HTTP_OK 200
+#define HTTP_NOT_FOUND 404
 
 #include <iomanip>
 #include <iostream>
@@ -251,7 +253,7 @@ void switchOff()
 
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
-  int value;
+  int value = 0;
 
   std::cout << "Publish received." << std::endl;
   std::cout << "  topic: " << topic << std::endl;
@@ -341,12 +343,12 @@ void setup()
   byte mac[6];
   std::ostringstream stringStream;
   WiFi.macAddress(mac);
-  stringStream << std::hex << std::setw(2) << std::setfill('0') << (int)mac[0]
-               << std::hex << std::setw(2) << std::setfill('0') << (int)mac[1]
-               << std::hex << std::setw(2) << std::setfill('0') << (int)mac[2]
-               << std::hex << std::setw(2) << std::setfill('0') << (int)mac[3]
-               << std::hex << std::setw(2) << std::setfill('0') << (int)mac[4]
-               << std::hex << std::setw(2) << std::setfill('0') << (int)mac[5];
+  stringStream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(mac[0])
+               << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(mac[1])
+               << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(mac[2])
+               << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(mac[3])
+               << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(mac[4])
+               << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(mac[5]);
   id = stringStream.str();
   mqttPublishTopic = id + mqttValuePrefix;
   mqttSubscribeTopic = id + mqttSwitchPrefix;
@@ -374,10 +376,10 @@ void setup()
 
   // setup webserver
   webServer.onNotFound([]() {
-    webServer.send(404, "text/plain", "Not found");
+    webServer.send(HTTP_NOT_FOUND, "text/plain", "Not found");
   });
   webServer.on("/", []() {
-    webServer.send(200, "application/json", getValue().c_str());
+    webServer.send(HTTP_OK, "application/json", getValue().c_str());
   });
 
   // setup OTA
@@ -385,17 +387,20 @@ void setup()
   ArduinoOTA.onStart([]() {
     std::string type;
     if (ArduinoOTA.getCommand() == U_FLASH)
+    {
       type = "sketch";
+    }
     else
+    {
       type = "filesystem";
-    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+    } // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
     std::cout << "Start updating " + type << std::endl;
   });
   ArduinoOTA.onEnd([]() {
     std::cout << "\nEnd" << std::endl;
   });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    std::cout << "Progress: " << (int)(progress / (total / 100)) << "%" << std::endl;
+    std::cout << "Progress: " << static_cast<int>(progress / (total / 100)) << "%" << std::endl;
   });
   ArduinoOTA.onError([](ota_error_t error) {
     std::cout << "Error[" << error << "]: " << error << std::endl;
