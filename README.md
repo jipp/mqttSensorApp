@@ -4,7 +4,7 @@ master branch:
 
 
 development branch:
-[![Build Status](https://travis-ci.org/jipp/mqttSensorApp.svg?branch=development)](https://ci.appveyor.com/project/jipp/mqttsensorapp)
+[![Build Status](https://travis-ci.org/jipp/mqttSensorApp.svg?branch=development)](https://travis-ci.org/jipp/mqttSensorApp)
 [![Build status](https://ci.appveyor.com/api/projects/status/g3msykeidxhic3y7/branch/development?svg=true)](https://ci.appveyor.com/project/jipp/mqttsensorapp)
 
 
