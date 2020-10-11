@@ -79,9 +79,9 @@ A http server is started on a configureable port.
  - get fingerprint: `echo | openssl s_client -connect localhost:8883 | openssl x509 -fingerprint -noout`
 
 ## mqtt validation
- - mosquitto_sub -h localhost -u <username> -P <pssword> -v -t <id>/value
- - mosquitto_pub -h localhost -u <username> -P <pssword> -t <id>/switch -m <message>
+ - subscribe: `mosquitto_sub -h localhost -u <username> -P <pssword> -v -t <id>/value`
+ - publish: `mosquitto_pub -h localhost -u <username> -P <pssword> -t <id>/switch -m <message>`
 
 ## command for ota installation
  - Change the upload auth password in platformio.ini
- - pio run -t upload -e d1_mini_pro_remote --upload-port=<ip address>
+ - upload: `pio run -t upload -e d1_mini_pro_remote --upload-port=<ip address>`
