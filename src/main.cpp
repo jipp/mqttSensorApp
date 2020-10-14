@@ -1,8 +1,6 @@
 #include <Arduino.h>
 
 #define ARDUINOJSON_ENABLE_STD_STRING 1
-#define HTTP_OK 200
-#define HTTP_NOT_FOUND 404
 
 #include <iomanip>
 #include <iostream>
@@ -57,11 +55,14 @@ BMP180 bmp180 = BMP180();
 BME280 bme280 = BME280();
 Bounce sensorSwitch1 = Bounce();
 Bounce sensorSwitch2 = Bounce();
-const int debounceInterval = 5;
+static const int debounceInterval = 5;
 Ticker switchTimer;
 
 static const int eepromAddress = 512;
 static const int addressSwitchState = 0;
+
+constexpr int HTTP_OK = 200;
+constexpr int HTTP_NOT_FOUND = 404;
 
 std::string getValue()
 {
