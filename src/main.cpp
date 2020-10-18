@@ -26,6 +26,10 @@
 #include <SHT3X.hpp>
 #include <VCC.hpp>
 
+#ifndef SPEED
+#define SPEED 115200
+#endif
+
 ADC_MODE(ADC_VCC)
 
 ESP8266WebServer webServer(webServerPort);
