@@ -23,6 +23,7 @@
 #include <BMP180.hpp>
 #include <Dummy.hpp>
 #include <Memory.hpp>
+#include <SCD30.hpp>
 #include <SHT3X.hpp>
 #include <VCC.hpp>
 
@@ -57,6 +58,7 @@ BH1750 bh1750 = BH1750();
 SHT3X sht3x = SHT3X(0x45);
 BMP180 bmp180 = BMP180();
 BME280 bme280 = BME280();
+SCD30 scd30 = SCD30();
 Bounce sensorSwitch1 = Bounce();
 Bounce sensorSwitch2 = Bounce();
 static const int debounceInterval = 5;
@@ -76,6 +78,7 @@ std::string getValue()
   JsonArray temperatureJson = doc.createNestedArray("temperature");
   JsonArray humidityJson = doc.createNestedArray("humidity");
   JsonArray pressureJson = doc.createNestedArray("pressure");
+  JsonArray co2Json = doc.createNestedArray("co2");
   std::string jsonString;
 
   doc["version"] = VERSION;
@@ -84,39 +87,39 @@ std::string getValue()
   sensorSwitchJson.add(sensorSwitch1.read());
   sensorSwitchJson.add(sensorSwitch2.read());
   doc["switch"] = (digitalRead(SWITCH_PIN) == 1);
-  if (memory.isAvailable)
+  if (memory.readMeasurement())
   {
-    memory.getValues();
-    doc["memory"] = memory.get(Measurement::MEMORY);
+    doc["memory"] = memory.getMeasurement(Measurement::MEMORY);
   }
-  if (vcc.isAvailable)
+  if (vcc.readMeasurement())
   {
-    vcc.getValues();
-    doc["vcc"] = vcc.get(Measurement::VOLTAGE);
+    doc["vcc"] = vcc.getMeasurement(Measurement::VOLTAGE);
   }
-  if (bh1750.isAvailable)
+  if (bh1750.readMeasurement())
   {
-    bh1750.getValues();
-    illuminanceJson.add(bh1750.get(Measurement::ILLUMINANCE));
+    illuminanceJson.add(bh1750.getMeasurement(Measurement::ILLUMINANCE));
   }
-  if (sht3x.isAvailable)
+  if (sht3x.readMeasurement())
   {
-    sht3x.getValues();
-    temperatureJson.add(sht3x.get(Measurement::TEMPERATURE));
-    humidityJson.add(sht3x.get(Measurement::HUMIDITY));
+    temperatureJson.add(sht3x.getMeasurement(Measurement::TEMPERATURE));
+    humidityJson.add(sht3x.getMeasurement(Measurement::HUMIDITY));
   }
-  if (bmp180.isAvailable)
+  if (bmp180.readMeasurement())
   {
-    bmp180.getValues();
-    temperatureJson.add(bmp180.get(Measurement::TEMPERATURE));
-    pressureJson.add(bmp180.get(Measurement::PRESSURE));
+    temperatureJson.add(bmp180.getMeasurement(Measurement::TEMPERATURE));
+    pressureJson.add(bmp180.getMeasurement(Measurement::PRESSURE));
   }
-  if (bme280.isAvailable)
+  if (bme280.readMeasurement())
   {
-    bme280.getValues();
-    temperatureJson.add(bme280.get(Measurement::TEMPERATURE));
-    pressureJson.add(bme280.get(Measurement::PRESSURE));
-    humidityJson.add(bme280.get(Measurement::HUMIDITY));
+    temperatureJson.add(bme280.getMeasurement(Measurement::TEMPERATURE));
+    pressureJson.add(bme280.getMeasurement(Measurement::PRESSURE));
+    humidityJson.add(bme280.getMeasurement(Measurement::HUMIDITY));
+  }
+  if (scd30.readMeasurement())
+  {
+    temperatureJson.add(bme280.getMeasurement(Measurement::TEMPERATURE));
+    pressureJson.add(bme280.getMeasurement(Measurement::PRESSURE));
+    co2Json.add(bme280.getMeasurement(Measurement::CO2));
   }
 
   serializeJson(doc, jsonString);
@@ -325,18 +328,14 @@ void setup()
   sensorSwitch1.interval(debounceInterval);
   sensorSwitch2.attach(SENSOR_PIN_2);
   sensorSwitch2.interval(debounceInterval);
-  memory.begin();
-  memory.isAvailable ? std::cout << "memory " : std::cout << ". ";
-  vcc.begin();
-  vcc.isAvailable ? std::cout << "vcc " : std::cout << ". ";
-  bh1750.begin();
-  bh1750.isAvailable ? std::cout << "bh1750 " : std::cout << ". ";
-  sht3x.begin();
-  sht3x.isAvailable ? std::cout << "sht3x " : std::cout << ". ";
-  bmp180.begin();
-  bmp180.isAvailable ? std::cout << "bmp180 " : std::cout << ". ";
-  bme280.begin();
-  bme280.isAvailable ? std::cout << "bme280  " << std::endl : std::cout << "." << std::endl;
+  memory.begin() ? std::cout << "memory " : std::cout << ". ";
+  vcc.begin() ? std::cout << "vcc " : std::cout << ". ";
+  bh1750.begin() ? std::cout << "bh1750 " : std::cout << ". ";
+  sht3x.begin() ? std::cout << "sht3x " : std::cout << ". ";
+  bmp180.begin() ? std::cout << "bmp180 " : std::cout << ". ";
+  bme280.begin() ? std::cout << "bme280 " : std::cout << ". ";
+  scd30.begin() ? std::cout << "scd30  " : std::cout << ". ";
+  std::cout << std::endl;
 
   // setup WiFi
   connectedEventHandler = WiFi.onStationModeConnected(onConnected);
