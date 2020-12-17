@@ -44,6 +44,7 @@ std::string psk;
 std::string ssid;
 
 AsyncMqttClient mqttClient;
+IPAddress mqttServerIP;
 Ticker mqttReconnect;
 Ticker mqttPublish;
 std::string id;
@@ -150,6 +151,42 @@ void wifiConnect()
 void connectToMqtt()
 {
   std::cout << "Connecting to MQTT..." << std::endl;
+  std::cout << "Got mqttServer: " << mqttServer.c_str() << std::endl;
+
+  if (!mqttUsername.empty() or !mqttPassword.empty())
+  {
+    mqttClient.setCredentials(mqttUsername.c_str(), mqttPassword.c_str());
+  }
+
+  if (WiFi.hostByName(mqttServer.c_str(), mqttServerIP, 3000))
+  {
+    std::cout << "Got mqttServerIP: " << mqttServerIP.toString().c_str() << std::endl;
+
+    if (sizeof(mqttFingerprint) == 20)
+    {
+      mqttClient.setServer(mqttServerIP, mqttPortSecure);
+      mqttClient.setSecure(true);
+      mqttClient.addServerFingerprint(mqttFingerprint);
+    }
+    else
+    {
+      mqttClient.setServer(mqttServerIP, mqttPort);
+    }
+  }
+  else
+  {
+    if (sizeof(mqttFingerprint) == 20)
+    {
+      mqttClient.setServer(mqttServer.c_str(), mqttPortSecure);
+      mqttClient.setSecure(true);
+      mqttClient.addServerFingerprint(mqttFingerprint);
+    }
+    else
+    {
+      mqttClient.setServer(mqttServer.c_str(), mqttPort);
+    }
+  }
+
   mqttClient.connect();
 }
 
@@ -171,6 +208,10 @@ void onDisconnected(const WiFiEventStationModeDisconnected &event)
 void onGotIp(const WiFiEventStationModeGotIP &event)
 {
   std::cout << "Got IP: " << std::string(WiFi.localIP().toString().c_str()) << std::endl;
+  std::cout << "Got Mask: " << std::string(WiFi.subnetMask().toString().c_str()) << std::endl;
+  std::cout << "Got GW: " << std::string(WiFi.gatewayIP().toString().c_str()) << std::endl;
+  std::cout << "Got DNS1: " << std::string(WiFi.dnsIP(0).toString().c_str()) << std::endl;
+  std::cout << "Got DNS2: " << std::string(WiFi.dnsIP(1).toString().c_str()) << std::endl;
   digitalWrite(LED_BUILTIN, true);
   connectToMqtt();
   webServer.begin();
@@ -356,23 +397,9 @@ void setup()
   id = stringStream.str();
   mqttPublishTopic = id + mqttValuePrefix;
   mqttSubscribeTopic = id + mqttSwitchPrefix;
-
   mqttClient.onConnect(onMqttConnect);
   mqttClient.onDisconnect(onMqttDisconnect);
-  if (!mqttUsername.empty() or !mqttPassword.empty())
-  {
-    mqttClient.setCredentials(mqttUsername.c_str(), mqttPassword.c_str());
-  }
-  if (sizeof(mqttFingerprint) == 20)
-  {
-    mqttClient.setServer(mqttServer.c_str(), mqttPortSecure);
-    mqttClient.setSecure(true);
-    mqttClient.addServerFingerprint(mqttFingerprint);
-  }
-  else
-  {
-    mqttClient.setServer(mqttServer.c_str(), mqttPort);
-  }
+
   mqttClient.onSubscribe(onMqttSubscribe);
   mqttClient.onUnsubscribe(onMqttUnsubscribe);
   mqttClient.onMessage(onMqttMessage);
