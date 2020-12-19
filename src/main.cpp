@@ -88,34 +88,41 @@ std::string getValue()
   sensorSwitchJson.add(sensorSwitch1.read());
   sensorSwitchJson.add(sensorSwitch2.read());
   doc["switch"] = (digitalRead(SWITCH_PIN) == 1);
+
   if (memory.readMeasurement())
   {
     doc["memory"] = memory.getMeasurement(Measurement::MEMORY);
   }
+
   if (vcc.readMeasurement())
   {
     doc["vcc"] = vcc.getMeasurement(Measurement::VOLTAGE);
   }
+
   if (bh1750.readMeasurement())
   {
     illuminanceJson.add(bh1750.getMeasurement(Measurement::ILLUMINANCE));
   }
+
   if (sht3x.readMeasurement())
   {
     temperatureJson.add(sht3x.getMeasurement(Measurement::TEMPERATURE));
     humidityJson.add(sht3x.getMeasurement(Measurement::HUMIDITY));
   }
+
   if (bmp180.readMeasurement())
   {
     temperatureJson.add(bmp180.getMeasurement(Measurement::TEMPERATURE));
     pressureJson.add(bmp180.getMeasurement(Measurement::PRESSURE));
   }
+
   if (bme280.readMeasurement())
   {
     temperatureJson.add(bme280.getMeasurement(Measurement::TEMPERATURE));
     pressureJson.add(bme280.getMeasurement(Measurement::PRESSURE));
     humidityJson.add(bme280.getMeasurement(Measurement::HUMIDITY));
   }
+
   if (scd30.readMeasurement())
   {
     temperatureJson.add(bme280.getMeasurement(Measurement::TEMPERATURE));
@@ -144,23 +151,28 @@ void setEEPROMfromSwitch()
 
 void wifiConnect()
 {
-  std::cout << "Connecting to Wi-Fi..." << std::endl;
+  std::cout << "Connecting to WiFi ..." << std::endl;
   WiFi.begin(ssid.c_str(), psk.c_str());
 }
 
 void connectToMqtt()
 {
-  std::cout << "Connecting to MQTT..." << std::endl;
-  std::cout << "Got mqttServer: " << mqttServer.c_str() << std::endl;
+  std::cout << "Connecting to MQTT ..." << std::endl;
 
   if (!mqttUsername.empty() or !mqttPassword.empty())
   {
+    std::cout << "  mqttUsername: " << mqttUsername.c_str() << std::endl;
+
     mqttClient.setCredentials(mqttUsername.c_str(), mqttPassword.c_str());
   }
 
-  if (WiFi.hostByName(mqttServer.c_str(), mqttServerIP, 3000))
+  mqttClient.setClientId(hostname.c_str());
+
+  std::cout << "  mqttServer: " << mqttServer.c_str() << std::endl;
+
+  if (WiFi.hostByName(mqttServer.c_str(), mqttServerIP) && mqttServerIP != IPAddress(255, 255, 255, 255))
   {
-    std::cout << "Got mqttServerIP: " << mqttServerIP.toString().c_str() << std::endl;
+    std::cout << "  mqttServerIP: " << mqttServerIP.toString().c_str() << std::endl;
 
     if (sizeof(mqttFingerprint) == 20)
     {
@@ -172,32 +184,20 @@ void connectToMqtt()
     {
       mqttClient.setServer(mqttServerIP, mqttPort);
     }
-  }
-  else
-  {
-    if (sizeof(mqttFingerprint) == 20)
-    {
-      mqttClient.setServer(mqttServer.c_str(), mqttPortSecure);
-      mqttClient.setSecure(true);
-      mqttClient.addServerFingerprint(mqttFingerprint);
-    }
-    else
-    {
-      mqttClient.setServer(mqttServer.c_str(), mqttPort);
-    }
-  }
 
-  mqttClient.connect();
+    mqttClient.connect();
+  }
 }
 
 void onConnected(const WiFiEventStationModeConnected &event)
 {
-  std::cout << "Connected to Wi-Fi." << std::endl;
+  std::cout << "Connected to WiFi" << std::endl;
 }
 
 void onDisconnected(const WiFiEventStationModeDisconnected &event)
 {
-  std::cout << "Disconnected from Wi-Fi." << std::endl;
+  std::cout << "Disconnected from WiFi" << std::endl;
+
   digitalWrite(LED_BUILTIN, false);
   mqttPublish.detach();
   mqttReconnect.detach();
@@ -207,11 +207,13 @@ void onDisconnected(const WiFiEventStationModeDisconnected &event)
 
 void onGotIp(const WiFiEventStationModeGotIP &event)
 {
-  std::cout << "Got IP: " << std::string(WiFi.localIP().toString().c_str()) << std::endl;
-  std::cout << "Got Mask: " << std::string(WiFi.subnetMask().toString().c_str()) << std::endl;
-  std::cout << "Got GW: " << std::string(WiFi.gatewayIP().toString().c_str()) << std::endl;
-  std::cout << "Got DNS1: " << std::string(WiFi.dnsIP(0).toString().c_str()) << std::endl;
-  std::cout << "Got DNS2: " << std::string(WiFi.dnsIP(1).toString().c_str()) << std::endl;
+  std::cout << "Got Network" << std::endl;
+  std::cout << "  IP: " << std::string(WiFi.localIP().toString().c_str()) << std::endl;
+  std::cout << "  Mask: " << std::string(WiFi.subnetMask().toString().c_str()) << std::endl;
+  std::cout << "  GW: " << std::string(WiFi.gatewayIP().toString().c_str()) << std::endl;
+  std::cout << "  DNS1: " << std::string(WiFi.dnsIP(0).toString().c_str()) << std::endl;
+  std::cout << "  DNS2: " << std::string(WiFi.dnsIP(1).toString().c_str()) << std::endl;
+
   digitalWrite(LED_BUILTIN, true);
   connectToMqtt();
   webServer.begin();
@@ -220,7 +222,7 @@ void onGotIp(const WiFiEventStationModeGotIP &event)
 
 void onDHCPTimeout()
 {
-  std::cout << "DHCP Timeout." << std::endl;
+  std::cout << "DHCP Timeout" << std::endl;
 }
 
 void getWiFi()
@@ -229,6 +231,9 @@ void getWiFi()
   WiFiManager wifiManager;
 
   WiFi.hostname(hostname.c_str());
+
+  std::cout << "hostname: " << WiFi.hostname().c_str() << std::endl;
+
   // wifiManager.resetSettings();
   wifiManager.setDebugOutput(false);
   wifiManager.setConfigPortalTimeout(timeout);
@@ -246,25 +251,31 @@ void mqttPublishMessage()
 {
   value = getValue();
   uint16_t packetIdPub = mqttClient.publish(mqttPublishTopic.c_str(), mqttPublishQoS, true, value.c_str());
+
   std::cout << "Publishing at QoS " << unsigned(mqttPublishQoS) << ", packetId: " << packetIdPub << std::endl;
 }
 
 void onMqttConnect(bool sessionPresent)
 {
-  std::cout << "Connected to MQTT." << std::endl;
-  std::cout << "Session present: " << sessionPresent << std::endl;
+  std::cout << "Connected to MQTT" << std::endl;
+  std::cout << "  Session present: " << sessionPresent << std::endl;
+
   uint16_t packetIdSub = mqttClient.subscribe(mqttSubscribeTopic.c_str(), mqttSubscribeQoS);
-  std::cout << "Subscribing at QoS " << unsigned(mqttSubscribeQoS) << ", packetId: " << packetIdSub << std::endl;
+
+  std::cout << "  mqttPublishTopic: " << mqttPublishTopic.c_str() << std::endl;
+  std::cout << "  mqttSubscribeTopic: " << mqttSubscribeTopic.c_str() << std::endl;
+  std::cout << "  Subscribing at QoS " << unsigned(mqttSubscribeQoS) << ", packetId: " << packetIdSub << std::endl;
+
   mqttPublish.attach(measureIntervall, mqttPublishMessage);
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
-  std::cout << "Disconnected from MQTT." << std::endl;
+  std::cout << "Disconnected from MQTT" << std::endl;
 
   if (reason == AsyncMqttClientDisconnectReason::TLS_BAD_FINGERPRINT)
   {
-    std::cout << "Bad server fingerprint." << std::endl;
+    std::cout << "  Bad server fingerprint" << std::endl;
   }
 
   if (WiFi.isConnected())
@@ -275,14 +286,14 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 
 void onMqttSubscribe(uint16_t packetId, uint8_t qos)
 {
-  std::cout << "Subscribe acknowledged." << std::endl;
+  std::cout << "Subscribe acknowledged" << std::endl;
   std::cout << "  packetId: " << packetId << std::endl;
   std::cout << "  qos: " << unsigned(qos) << std::endl;
 }
 
 void onMqttUnsubscribe(uint16_t packetId)
 {
-  std::cout << "Unsubscribe acknowledged." << std::endl;
+  std::cout << "Unsubscribe acknowledged" << std::endl;
   std::cout << "  packetId: " << packetId << std::endl;
 }
 
@@ -304,7 +315,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 {
   int value = 0;
 
-  std::cout << "Publish received." << std::endl;
+  std::cout << "Publish received" << std::endl;
   std::cout << "  topic: " << topic << std::endl;
   std::cout << "  qos: " << unsigned(properties.qos) << std::endl;
   std::cout << "  dup: " << properties.dup << std::endl;
@@ -349,7 +360,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
 void onMqttPublish(uint16_t packetId)
 {
-  std::cout << "Publish acknowledged." << std::endl;
+  std::cout << "Publish acknowledged" << std::endl;
   std::cout << "  packetId: " << packetId << std::endl;
 }
 
@@ -397,9 +408,9 @@ void setup()
   id = stringStream.str();
   mqttPublishTopic = id + mqttValuePrefix;
   mqttSubscribeTopic = id + mqttSwitchPrefix;
+
   mqttClient.onConnect(onMqttConnect);
   mqttClient.onDisconnect(onMqttDisconnect);
-
   mqttClient.onSubscribe(onMqttSubscribe);
   mqttClient.onUnsubscribe(onMqttUnsubscribe);
   mqttClient.onMessage(onMqttMessage);
