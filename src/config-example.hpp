@@ -21,9 +21,6 @@ static const uint8_t SENSOR_PIN_2 = D7;
 // ota settings
 static const std::string otaPasswordHash = "<md5 hash for password>";
 
-// wifi settings
-static const std::string hostname = "<hostname>";
-
 // webserver port
 static const int webServerPort = 80;
 
@@ -36,11 +33,14 @@ static const uint16_t mqttPort = 1883;
 static const uint16_t mqttPortSecure = 8883;
 static const uint8_t mqttFingerprint[] = {};
 //static const uint8_t mqttFingerprint[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-static const std::string mqttUsername = "<mqtt-user>";
-static const std::string mqttPassword =  "<mqtt-password>";
 static const std::string mqttValuePrefix = "<mqtt-topic-value-prefix>";
 static const std::string mqttSwitchPrefix = "<mqtt-topic-switch-prefix>";
 static const uint8_t mqttPublishQoS = 0;
 static const uint8_t mqttSubscribeQoS = 0;
+
+// platformio.ini
+std::string hostname = HOSTNAME;
+std::string mqttUsername = MQTT_USERNAME;
+std::string mqttPassword = MQTT_PASSWORD;
 
 #endif

@@ -81,7 +81,3 @@ A http server is started on a configureable port.
 ## mqtt validation
  - subscribe: `mosquitto_sub -h localhost -u <username> -P <pssword> -v -t <id>/value`
  - publish: `mosquitto_pub -h localhost -u <username> -P <pssword> -t <id>/switch -m <message>`
-
-## command for ota installation
- - Change the upload auth password in platformio.ini
- - upload: `pio run -t upload -e d1_mini_pro_remote --upload-port=<ip address>`
