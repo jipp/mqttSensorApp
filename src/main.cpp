@@ -1,8 +1,6 @@
 #include <Arduino.h>
 
 #define ARDUINOJSON_ENABLE_STD_STRING 1
-#define HTTP_OK 200
-#define HTTP_NOT_FOUND 404
 
 #include <iomanip>
 #include <iostream>
@@ -25,8 +23,13 @@
 #include <BMP180.hpp>
 #include <Dummy.hpp>
 #include <Memory.hpp>
+#include <SCD30.hpp>
 #include <SHT3X.hpp>
 #include <VCC.hpp>
+
+#ifndef SPEED
+#define SPEED 115200
+#endif
 
 ADC_MODE(ADC_VCC)
 
@@ -41,6 +44,7 @@ std::string psk;
 std::string ssid;
 
 AsyncMqttClient mqttClient;
+IPAddress mqttServerIP;
 Ticker mqttReconnect;
 Ticker mqttPublish;
 std::string id;
@@ -55,13 +59,17 @@ BH1750 bh1750 = BH1750();
 SHT3X sht3x = SHT3X(0x45);
 BMP180 bmp180 = BMP180();
 BME280 bme280 = BME280();
+SCD30 scd30 = SCD30();
 Bounce sensorSwitch1 = Bounce();
 Bounce sensorSwitch2 = Bounce();
-const int debounceInterval = 5;
+static const int debounceInterval = 5;
 Ticker switchTimer;
 
 static const int eepromAddress = 512;
 static const int addressSwitchState = 0;
+
+constexpr int HTTP_OK = 200;
+constexpr int HTTP_NOT_FOUND = 404;
 
 std::string getValue()
 {
@@ -71,6 +79,7 @@ std::string getValue()
   JsonArray temperatureJson = doc.createNestedArray("temperature");
   JsonArray humidityJson = doc.createNestedArray("humidity");
   JsonArray pressureJson = doc.createNestedArray("pressure");
+  JsonArray co2Json = doc.createNestedArray("co2");
   std::string jsonString;
 
   doc["version"] = VERSION;
@@ -79,39 +88,46 @@ std::string getValue()
   sensorSwitchJson.add(sensorSwitch1.read());
   sensorSwitchJson.add(sensorSwitch2.read());
   doc["switch"] = (digitalRead(SWITCH_PIN) == 1);
-  if (memory.isAvailable)
+
+  if (memory.readMeasurement())
   {
-    memory.getValues();
-    doc["memory"] = memory.get(Measurement::MEMORY);
+    doc["memory"] = memory.getMeasurement(Measurement::MEMORY);
   }
-  if (vcc.isAvailable)
+
+  if (vcc.readMeasurement())
   {
-    vcc.getValues();
-    doc["vcc"] = vcc.get(Measurement::VOLTAGE);
+    doc["vcc"] = vcc.getMeasurement(Measurement::VOLTAGE);
   }
-  if (bh1750.isAvailable)
+
+  if (bh1750.readMeasurement())
   {
-    bh1750.getValues();
-    illuminanceJson.add(bh1750.get(Measurement::ILLUMINANCE));
+    illuminanceJson.add(bh1750.getMeasurement(Measurement::ILLUMINANCE));
   }
-  if (sht3x.isAvailable)
+
+  if (sht3x.readMeasurement())
   {
-    sht3x.getValues();
-    temperatureJson.add(sht3x.get(Measurement::TEMPERATURE));
-    humidityJson.add(sht3x.get(Measurement::HUMIDITY));
+    temperatureJson.add(sht3x.getMeasurement(Measurement::TEMPERATURE));
+    humidityJson.add(sht3x.getMeasurement(Measurement::HUMIDITY));
   }
-  if (bmp180.isAvailable)
+
+  if (bmp180.readMeasurement())
   {
-    bmp180.getValues();
-    temperatureJson.add(bmp180.get(Measurement::TEMPERATURE));
-    pressureJson.add(bmp180.get(Measurement::PRESSURE));
+    temperatureJson.add(bmp180.getMeasurement(Measurement::TEMPERATURE));
+    pressureJson.add(bmp180.getMeasurement(Measurement::PRESSURE));
   }
-  if (bme280.isAvailable)
+
+  if (bme280.readMeasurement())
   {
-    bme280.getValues();
-    temperatureJson.add(bme280.get(Measurement::TEMPERATURE));
-    pressureJson.add(bme280.get(Measurement::PRESSURE));
-    humidityJson.add(bme280.get(Measurement::HUMIDITY));
+    temperatureJson.add(bme280.getMeasurement(Measurement::TEMPERATURE));
+    pressureJson.add(bme280.getMeasurement(Measurement::PRESSURE));
+    humidityJson.add(bme280.getMeasurement(Measurement::HUMIDITY));
+  }
+
+  if (scd30.readMeasurement())
+  {
+    temperatureJson.add(bme280.getMeasurement(Measurement::TEMPERATURE));
+    pressureJson.add(bme280.getMeasurement(Measurement::PRESSURE));
+    co2Json.add(bme280.getMeasurement(Measurement::CO2));
   }
 
   serializeJson(doc, jsonString);
@@ -135,24 +151,53 @@ void setEEPROMfromSwitch()
 
 void wifiConnect()
 {
-  std::cout << "Connecting to Wi-Fi..." << std::endl;
+  std::cout << "Connecting to WiFi ..." << std::endl;
   WiFi.begin(ssid.c_str(), psk.c_str());
 }
 
 void connectToMqtt()
 {
-  std::cout << "Connecting to MQTT..." << std::endl;
-  mqttClient.connect();
+  std::cout << "Connecting to MQTT ..." << std::endl;
+
+  if (!mqttUsername.empty() or !mqttPassword.empty())
+  {
+    std::cout << "  mqttUsername: " << mqttUsername.c_str() << std::endl;
+
+    mqttClient.setCredentials(mqttUsername.c_str(), mqttPassword.c_str());
+  }
+
+  mqttClient.setClientId(hostname.c_str());
+
+  std::cout << "  mqttServer: " << mqttServer.c_str() << std::endl;
+
+  if (WiFi.hostByName(mqttServer.c_str(), mqttServerIP) && mqttServerIP != IPAddress(255, 255, 255, 255))
+  {
+    std::cout << "  mqttServerIP: " << mqttServerIP.toString().c_str() << std::endl;
+
+    if (sizeof(mqttFingerprint) == 20)
+    {
+      mqttClient.setServer(mqttServerIP, mqttPortSecure);
+      mqttClient.setSecure(true);
+      mqttClient.addServerFingerprint(mqttFingerprint);
+    }
+    else
+    {
+      mqttClient.setServer(mqttServerIP, mqttPort);
+    }
+
+    mqttClient.connect();
+  }
 }
 
 void onConnected(const WiFiEventStationModeConnected &event)
 {
-  std::cout << "Connected to Wi-Fi." << std::endl;
+  std::cout << "Connected to WiFi" << std::endl;
 }
 
 void onDisconnected(const WiFiEventStationModeDisconnected &event)
 {
-  std::cout << "Disconnected from Wi-Fi." << std::endl;
+  std::cout << "Disconnected from WiFi" << std::endl;
+
   digitalWrite(LED_BUILTIN, false);
   mqttPublish.detach();
   mqttReconnect.detach();
@@ -162,7 +207,13 @@ void onDisconnected(const WiFiEventStationModeDisconnected &event)
 
 void onGotIp(const WiFiEventStationModeGotIP &event)
 {
-  std::cout << "Got IP: " << std::string(WiFi.localIP().toString().c_str()) << std::endl;
+  std::cout << "Got Network" << std::endl;
+  std::cout << "  IP: " << std::string(WiFi.localIP().toString().c_str()) << std::endl;
+  std::cout << "  Mask: " << std::string(WiFi.subnetMask().toString().c_str()) << std::endl;
+  std::cout << "  GW: " << std::string(WiFi.gatewayIP().toString().c_str()) << std::endl;
+  std::cout << "  DNS1: " << std::string(WiFi.dnsIP(0).toString().c_str()) << std::endl;
+  std::cout << "  DNS2: " << std::string(WiFi.dnsIP(1).toString().c_str()) << std::endl;
+
   digitalWrite(LED_BUILTIN, true);
   connectToMqtt();
   webServer.begin();
@@ -171,7 +222,7 @@ void onGotIp(const WiFiEventStationModeGotIP &event)
 
 void onDHCPTimeout()
 {
-  std::cout << "DHCP Timeout." << std::endl;
+  std::cout << "DHCP Timeout" << std::endl;
 }
 
 void getWiFi()
@@ -180,6 +231,9 @@ void getWiFi()
   WiFiManager wifiManager;
 
   WiFi.hostname(hostname.c_str());
+
+  std::cout << "hostname: " << WiFi.hostname().c_str() << std::endl;
+
   // wifiManager.resetSettings();
   wifiManager.setDebugOutput(false);
   wifiManager.setConfigPortalTimeout(timeout);
@@ -197,25 +251,31 @@ void mqttPublishMessage()
 {
   value = getValue();
   uint16_t packetIdPub = mqttClient.publish(mqttPublishTopic.c_str(), mqttPublishQoS, true, value.c_str());
+
   std::cout << "Publishing at QoS " << unsigned(mqttPublishQoS) << ", packetId: " << packetIdPub << std::endl;
 }
 
 void onMqttConnect(bool sessionPresent)
 {
-  std::cout << "Connected to MQTT." << std::endl;
-  std::cout << "Session present: " << sessionPresent << std::endl;
+  std::cout << "Connected to MQTT" << std::endl;
+  std::cout << "  Session present: " << sessionPresent << std::endl;
+
   uint16_t packetIdSub = mqttClient.subscribe(mqttSubscribeTopic.c_str(), mqttSubscribeQoS);
-  std::cout << "Subscribing at QoS " << unsigned(mqttSubscribeQoS) << ", packetId: " << packetIdSub << std::endl;
+
+  std::cout << "  mqttPublishTopic: " << mqttPublishTopic.c_str() << std::endl;
+  std::cout << "  mqttSubscribeTopic: " << mqttSubscribeTopic.c_str() << std::endl;
+  std::cout << "  Subscribing at QoS " << unsigned(mqttSubscribeQoS) << ", packetId: " << packetIdSub << std::endl;
+
   mqttPublish.attach(measureIntervall, mqttPublishMessage);
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
-  std::cout << "Disconnected from MQTT." << std::endl;
+  std::cout << "Disconnected from MQTT" << std::endl;
 
   if (reason == AsyncMqttClientDisconnectReason::TLS_BAD_FINGERPRINT)
   {
-    std::cout << "Bad server fingerprint." << std::endl;
+    std::cout << "  Bad server fingerprint" << std::endl;
   }
 
   if (WiFi.isConnected())
@@ -226,14 +286,14 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 
 void onMqttSubscribe(uint16_t packetId, uint8_t qos)
 {
-  std::cout << "Subscribe acknowledged." << std::endl;
+  std::cout << "Subscribe acknowledged" << std::endl;
   std::cout << "  packetId: " << packetId << std::endl;
   std::cout << "  qos: " << unsigned(qos) << std::endl;
 }
 
 void onMqttUnsubscribe(uint16_t packetId)
 {
-  std::cout << "Unsubscribe acknowledged." << std::endl;
+  std::cout << "Unsubscribe acknowledged" << std::endl;
   std::cout << "  packetId: " << packetId << std::endl;
 }
 
@@ -255,7 +315,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 {
   int value = 0;
 
-  std::cout << "Publish received." << std::endl;
+  std::cout << "Publish received" << std::endl;
   std::cout << "  topic: " << topic << std::endl;
   std::cout << "  qos: " << unsigned(properties.qos) << std::endl;
   std::cout << "  dup: " << properties.dup << std::endl;
@@ -300,7 +360,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
 void onMqttPublish(uint16_t packetId)
 {
-  std::cout << "Publish acknowledged." << std::endl;
+  std::cout << "Publish acknowledged" << std::endl;
   std::cout << "  packetId: " << packetId << std::endl;
 }
 
@@ -320,18 +380,14 @@ void setup()
   sensorSwitch1.interval(debounceInterval);
   sensorSwitch2.attach(SENSOR_PIN_2);
   sensorSwitch2.interval(debounceInterval);
-  memory.begin();
-  memory.isAvailable ? std::cout << "memory " : std::cout << ". ";
-  vcc.begin();
-  vcc.isAvailable ? std::cout << "vcc " : std::cout << ". ";
-  bh1750.begin();
-  bh1750.isAvailable ? std::cout << "bh1750 " : std::cout << ". ";
-  sht3x.begin();
-  sht3x.isAvailable ? std::cout << "sht3x " : std::cout << ". ";
-  bmp180.begin();
-  bmp180.isAvailable ? std::cout << "bmp180 " : std::cout << ". ";
-  bme280.begin();
-  bme280.isAvailable ? std::cout << "bme280  " << std::endl : std::cout << "." << std::endl;
+  memory.begin() ? std::cout << "memory " : std::cout << ". ";
+  vcc.begin() ? std::cout << "vcc " : std::cout << ". ";
+  bh1750.begin() ? std::cout << "bh1750 " : std::cout << ". ";
+  sht3x.begin() ? std::cout << "sht3x " : std::cout << ". ";
+  bmp180.begin() ? std::cout << "bmp180 " : std::cout << ". ";
+  bme280.begin() ? std::cout << "bme280 " : std::cout << ". ";
+  scd30.begin() ? std::cout << "scd30  " : std::cout << ". ";
+  std::cout << std::endl;
 
   // setup WiFi
   connectedEventHandler = WiFi.onStationModeConnected(onConnected);
@@ -355,20 +411,6 @@ void setup()
 
   mqttClient.onConnect(onMqttConnect);
   mqttClient.onDisconnect(onMqttDisconnect);
-  if (!mqttUsername.empty() or !mqttPassword.empty())
-  {
-    mqttClient.setCredentials(mqttUsername.c_str(), mqttPassword.c_str());
-  }
-  if (sizeof(mqttFingerprint) == 20)
-  {
-    mqttClient.setServer(mqttServer.c_str(), mqttPortSecure);
-    mqttClient.setSecure(true);
-    mqttClient.addServerFingerprint(mqttFingerprint);
-  }
-  else
-  {
-    mqttClient.setServer(mqttServer.c_str(), mqttPort);
-  }
   mqttClient.onSubscribe(onMqttSubscribe);
   mqttClient.onUnsubscribe(onMqttUnsubscribe);
   mqttClient.onMessage(onMqttMessage);
